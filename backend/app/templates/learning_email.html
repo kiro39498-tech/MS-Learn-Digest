@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{ topic_name }} Learning Track — Module {{ module_number }}</title>
+<style>
+  body { margin: 0; padding: 0; background: #f0f4f8; font-family: 'Segoe UI', Arial, sans-serif; }
+  .wrapper { max-width: 640px; margin: 0 auto; background: #ffffff; }
+  /* Header */
+  .header { background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%); padding: 32px 40px; }
+  .header-badge { display: inline-block; background: rgba(255,255,255,0.18); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
+  .header h1 { color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 6px 0; }
+  .header .subtitle { color: rgba(255,255,255,0.85); font-size: 14px; margin: 0; }
+  /* Progress bar */
+  .progress-wrap { background: #e8f0fe; padding: 16px 40px; border-bottom: 1px solid #dde3f0; }
+  .progress-label { font-size: 12px; color: #4a5568; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-bar { background: #c7d7f5; border-radius: 6px; height: 8px; overflow: hidden; }
+  .progress-fill { background: #0078d4; height: 8px; border-radius: 6px; transition: width 0.3s; }
+  /* Body */
+  .body { padding: 32px 40px; }
+  .greeting { font-size: 16px; color: #1a202c; margin-bottom: 24px; }
+  /* Section headers */
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #0078d4; margin: 28px 0 10px 0; }
+  /* Intro box */
+  .intro-box { background: #f0f7ff; border-left: 4px solid #0078d4; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 24px; color: #2d3748; font-size: 15px; line-height: 1.6; }
+  /* Explanation */
+  .explanation { font-size: 15px; line-height: 1.75; color: #2d3748; margin-bottom: 24px; white-space: pre-line; }
+  /* Key Concepts */
+  .concepts-grid { display: table; width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-bottom: 24px; }
+  .concept-row { display: table-row; }
+  .concept-term { display: table-cell; background: #ebf4ff; color: #0078d4; font-weight: 700; font-size: 13px; padding: 10px 14px; border-radius: 6px 0 0 6px; white-space: nowrap; vertical-align: top; min-width: 140px; }
+  .concept-def { display: table-cell; background: #f7fbff; color: #4a5568; font-size: 14px; padding: 10px 14px; border-radius: 0 6px 6px 0; line-height: 1.5; vertical-align: top; border-left: 1px solid #dce8f5; }
+  /* Real-world example */
+  .example-box { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+  .example-box .label { font-size: 12px; font-weight: 700; color: #b7791f; text-transform: uppercase; margin-bottom: 6px; }
+  .example-box p { font-size: 14px; color: #2d3748; margin: 0; line-height: 1.6; }
+  /* Exercise */
+  .exercise-box { background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+  .exercise-box .ex-title { font-size: 15px; font-weight: 700; color: #276749; margin-bottom: 8px; }
+  .exercise-box .ex-desc { font-size: 14px; color: #2d3748; line-height: 1.7; white-space: pre-line; }
+  .exercise-box .ex-outcome { font-size: 13px; color: #276749; margin-top: 10px; font-style: italic; }
+  /* Quiz */
+  .quiz-item { background: #fafafa; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
+  .quiz-question { font-size: 14px; font-weight: 700; color: #1a202c; margin-bottom: 10px; }
+  .quiz-option { font-size: 13px; color: #4a5568; padding: 5px 0; padding-left: 18px; position: relative; }
+  .quiz-option::before { content: "○"; position: absolute; left: 0; color: #a0aec0; }
+  .quiz-answer { font-size: 12px; color: #276749; font-weight: 600; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+  .quiz-explanation { font-size: 12px; color: #718096; margin-top: 4px; }
+  /* Summary */
+  .summary-list { list-style: none; padding: 0; margin: 0 0 24px 0; }
+  .summary-list li { font-size: 14px; color: #2d3748; padding: 8px 0 8px 28px; border-bottom: 1px solid #f0f0f0; position: relative; line-height: 1.5; }
+  .summary-list li:last-child { border-bottom: none; }
+  .summary-list li::before { content: "✓"; position: absolute; left: 4px; color: #0078d4; font-weight: 700; }
+  /* Resources */
+  .resource-link { display: block; background: #f7f9fc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 16px; margin-bottom: 8px; text-decoration: none; font-size: 13px; color: #0078d4; }
+  .resource-link:hover { background: #ebf4ff; }
+  .resource-source { font-size: 11px; color: #a0aec0; margin-left: 8px; }
+  /* Next lesson */
+  .next-box { background: linear-gradient(135deg, #ebf4ff 0%, #f0f7ff 100%); border: 1px solid #bee3f8; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+  .next-box .next-label { font-size: 11px; font-weight: 700; color: #2b6cb0; text-transform: uppercase; margin-bottom: 6px; }
+  .next-box p { font-size: 14px; color: #2d3748; margin: 0; }
+  /* Footer */
+  .footer { background: #f7f8fa; border-top: 1px solid #e2e8f0; padding: 24px 40px; text-align: center; }
+  .footer p { font-size: 12px; color: #a0aec0; margin: 4px 0; }
+  .footer a { color: #0078d4; text-decoration: none; }
+  /* Difficulty badge */
+  .diff-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
+  .diff-beginner { background: #c6f6d5; color: #276749; }
+  .diff-intermediate { background: #feebc8; color: #c05621; }
+  .diff-advanced { background: #fed7d7; color: #c53030; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">{{ topic_icon }} {{ topic_name }} Learning Track</div>
+    <h1>Module {{ module_number }}: {{ module_title }}
+      <span class="diff-badge diff-{{ difficulty_level }}">{{ difficulty_level | capitalize }}</span>
+    </h1>
+    <p class="subtitle">~{{ estimated_read_minutes }} min read &nbsp;·&nbsp; Module {{ module_number }} of {{ total_modules }}</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Your Progress</span>
+      <span><strong>{{ module_number }}/{{ total_modules }}</strong> modules ({{ progress_pct }}%)</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: {{ progress_pct }}%;"></div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hi {{ user_name }}, welcome to today's lesson! 👋</p>
+
+    {% if introduction %}
+    <div class="intro-box">{{ introduction }}</div>
+    {% endif %}
+
+    {% if explanation %}
+    <div class="section-label">📖 Lesson</div>
+    <div class="explanation">{{ explanation }}</div>
+    {% endif %}
+
+    {% if key_concepts %}
+    <div class="section-label">🔑 Key Concepts</div>
+    <div class="concepts-grid">
+      {% for concept in key_concepts %}
+      <div class="concept-row">
+        <div class="concept-term">{{ concept.term }}</div>
+        <div class="concept-def">{{ concept.definition }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if real_world_example %}
+    <div class="section-label">🌍 Real-World Example</div>
+    <div class="example-box">
+      <div class="label">Scenario</div>
+      <p>{{ real_world_example }}</p>
+    </div>
+    {% endif %}
+
+    {% if practical_exercise %}
+    <div class="section-label">🛠️ Practical Exercise</div>
+    <div class="exercise-box">
+      <div class="ex-title">{{ practical_exercise.title }}</div>
+      <div class="ex-desc">{{ practical_exercise.description }}</div>
+      {% if practical_exercise.expected_outcome %}
+      <div class="ex-outcome">✅ Expected outcome: {{ practical_exercise.expected_outcome }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if quiz %}
+    <div class="section-label">🧠 Quick Quiz</div>
+    {% for q in quiz %}
+    <div class="quiz-item">
+      <div class="quiz-question">Q{{ loop.index }}. {{ q.question }}</div>
+      {% for option in q.options %}
+      <div class="quiz-option">{{ option }}</div>
+      {% endfor %}
+      <div class="quiz-answer">✅ Answer: {{ q.correct_answer }}</div>
+      {% if q.explanation %}
+      <div class="quiz-explanation">{{ q.explanation }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if summary %}
+    <div class="section-label">📝 Summary</div>
+    <ul class="summary-list">
+      {% for point in summary %}
+      <li>{{ point }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if resource_links %}
+    <div class="section-label">🔗 Learn More</div>
+    {% for res in resource_links %}
+    <a class="resource-link" href="{{ res.url }}" target="_blank">
+      {{ res.title or res.url }}
+      <span class="resource-source">{{ res.source }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
+
+    {% if next_lesson_preview %}
+    <div class="next-box">
+      <div class="next-label">⏭️ Coming Up Next</div>
+      <p>{{ next_lesson_preview }}</p>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>You're on the <strong>{{ topic_name }} Learning Track</strong> — Module {{ module_number }} of {{ total_modules }}</p>
+    <p>
+      <a href="{{ frontend_url }}/learning">Manage your learning tracks</a>
+      &nbsp;·&nbsp;
+      <a href="{{ frontend_url }}/learning">View progress</a>
+    </p>
+    <p style="margin-top: 12px;">{{ generated_at }} &nbsp;·&nbsp; MS Learn Digest</p>
+  </div>
+
+</div>
+</body>
+</html>

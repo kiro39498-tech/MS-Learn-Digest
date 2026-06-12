@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ digest_title }}</title>
+  <style>
+    body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+    body{margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;}
+    .wrapper{max-width:640px;margin:0 auto;padding:24px 16px;}
+
+    /* Header */
+    .header{background:linear-gradient(135deg,#0078d4 0%,#005a9e 100%);border-radius:12px 12px 0 0;padding:32px 32px 24px;text-align:center;}
+    .header-logo{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:10px;}
+    .header h1{margin:0;font-size:24px;font-weight:700;color:#fff;line-height:1.3;}
+    .header-meta{margin-top:8px;font-size:13px;color:rgba(255,255,255,.7);}
+    .pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:500;margin:2px 3px;}
+
+    /* Stats bar */
+    .stats-bar{background:#fff;border-bottom:1px solid #e5e7eb;display:flex;}
+    .stat-cell{flex:1;text-align:center;padding:14px 8px;}
+    .stat-cell+.stat-cell{border-left:1px solid #e5e7eb;}
+    .stat-num{font-size:22px;font-weight:700;color:#0078d4;}
+    .stat-label{font-size:11px;color:#6b7280;margin-top:2px;}
+
+    /* Body */
+    .body{background:#fff;padding:28px 32px;border-radius:0 0 12px 12px;}
+    .greeting{font-size:15px;color:#374151;line-height:1.6;margin:0 0 20px;}
+
+    /* Executive summary */
+    .exec-summary{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:24px;}
+    .exec-summary-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#0078d4;margin-bottom:6px;}
+    .exec-summary-text{font-size:14px;color:#1e3a5f;line-height:1.6;margin:0;}
+
+    /* Section heading */
+    .section-heading{font-size:17px;font-weight:700;color:#0078d4;border-bottom:2px solid #e5e7eb;padding-bottom:9px;margin:0 0 18px;display:flex;align-items:center;justify-content:space-between;}
+    .section-count{font-size:12px;font-weight:500;color:#9ca3af;}
+
+    /* Item card */
+    .item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+    .item:last-child{margin-bottom:0;}
+    .item-title{font-size:15px;font-weight:700;color:#0078d4;text-decoration:none;line-height:1.4;display:block;margin-bottom:10px;}
+    .item-title:hover{text-decoration:underline;}
+    .badges{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:5px;}
+    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+    .b-module{background:#eff6ff;color:#1e40af;}
+    .b-path{background:#faf5ff;color:#7c3aed;}
+    .b-dur{background:#f3f4f6;color:#6b7280;}
+    .summary{font-size:13px;line-height:1.6;color:#4b5563;margin:0 0 11px;}
+    .wim{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 6px 6px 0;padding:11px 13px;margin-bottom:11px;}
+    .wim-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0078d4;margin-bottom:3px;}
+    .wim-text{font-size:13px;color:#374151;line-height:1.5;margin:0;}
+    .kt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:5px;}
+    .kt{margin:0 0 11px;padding-left:17px;}
+    .kt li{font-size:13px;color:#374151;line-height:1.5;margin-bottom:3px;}
+    .cta{display:inline-block;background:#0078d4;color:#fff;text-decoration:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;}
+
+    .divider{border:none;border-top:1px solid #e5e7eb;margin:24px 0;}
+    .footer{text-align:center;padding:20px 16px 0;font-size:12px;color:#9ca3af;line-height:1.8;}
+    .footer a{color:#6b7280;text-decoration:underline;}
+
+    @media(max-width:480px){
+      .body{padding:18px 14px;}
+      .header{padding:22px 14px 18px;}
+      .header h1{font-size:19px;}
+      .stats-bar{flex-direction:column;}
+      .stat-cell+.stat-cell{border-left:none;border-top:1px solid #e5e7eb;}
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">📚 MS Learn Digest</div>
+    <h1>{{ digest_title }}</h1>
+    <div class="header-meta">Generated {{ generated_at }}</div>
+    {% if topic_names %}
+    <div style="margin-top:14px;">
+      {% for t in topic_names %}<span class="pill">{{ t }}</span>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-cell">
+      <div class="stat-num">{{ item_count }}</div>
+      <div class="stat-label">Updates</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ topic_names|length }}</div>
+      <div class="stat-label">Topics</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" style="font-size:14px;padding-top:4px;">
+        {% if freq == 'daily' %}24h{% elif freq == 'weekly' %}7d{% elif freq == 'biweekly' %}14d{% else %}30d{% endif %}
+      </div>
+      <div class="stat-label">Window</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">
+      Hi {{ user_name }},<br>
+      Here are your Microsoft Learn updates for
+      {% if freq == 'daily' %}the last 24 hours
+      {% elif freq == 'weekly' %}the last 7 days
+      {% elif freq == 'biweekly' %}the last 14 days
+      {% else %}the last 30 days{% endif %}.
+    </p>
+
+    {% if executive_summary %}
+    <div class="exec-summary">
+      <div class="exec-summary-label">Executive Summary</div>
+      <p class="exec-summary-text">{{ executive_summary }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Single section: Microsoft Learn Updates -->
+    {% if items %}
+    <div class="section-heading">
+      <span>📘 Microsoft Learn Updates</span>
+      <span class="section-count">{{ items|length }} item{% if items|length != 1 %}s{% endif %}</span>
+    </div>
+
+    {% for item in items %}
+    <div class="item">
+      <a href="{{ item.url }}" class="item-title">{{ item.title }}</a>
+
+      <div class="badges">
+        {% if item.content_type %}
+        <span class="badge {{ 'b-path' if item.content_type == 'learningPath' else 'b-module' }}">
+          {{ 'Learning Path' if item.content_type == 'learningPath' else 'Module' }}
+        </span>
+        {% endif %}
+        {% if item.duration_minutes and item.duration_minutes > 0 %}
+        <span class="badge b-dur">⏱ {{ item.duration_minutes }} min</span>
+        {% endif %}
+      </div>
+
+      {% if item.newsletter_summary %}
+      <p class="summary">{{ item.newsletter_summary }}</p>
+      {% endif %}
+
+      {% if item.why_it_matters %}
+      <div class="wim">
+        <div class="wim-label">Why it matters</div>
+        <p class="wim-text">{{ item.why_it_matters }}</p>
+      </div>
+      {% endif %}
+
+      {% if item.key_takeaways and item.key_takeaways|length > 0 %}
+      <div class="kt-label">Key Takeaways</div>
+      <ul class="kt">
+        {% for kt in item.key_takeaways %}<li>{{ kt }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      <a href="{{ item.url }}" class="cta">Read on Microsoft Learn →</a>
+    </div>
+    {% endfor %}
+
+    {% endif %}
+
+    <hr class="divider">
+    <p style="font-size:13px;color:#6b7280;text-align:center;margin:0;">
+      Keep learning. See you next time.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Sent by <strong>MS Learn Digest</strong> — Your Microsoft Learn intelligence platform.</p>
+    <p>
+      <a href="{{ frontend_url }}/preferences">Manage Preferences</a>
+      &middot;
+      <a href="{{ frontend_url }}/history">View All Digests</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>
