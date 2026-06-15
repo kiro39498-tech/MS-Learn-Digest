@@ -906,3 +906,104 @@ async def repair_topic_hierarchy(db: Session = Depends(get_db)):
             "No new topics needed — hierarchy verified."
         ),
     }
+
+
+# ── Learning Engine test endpoints ────────────────────────────────────────────
+
+@router.get("/learning/status")
+async def admin_learning_status(db: Session = Depends(get_db)):
+    """
+    Show learning engine status: tables, topics, modules, active subscriptions.
+    """
+    _check_admin_enabled()
+    from sqlalchemy import text, func
+    from app.repositories.learning_repository import LearningRepository
+
+    try:
+        topic_count = db.execute(text("SELECT COUNT(*) FROM learning_topics")).scalar()
+        module_count = db.execute(text("SELECT COUNT(*) FROM learning_modules")).scalar()
+        sub_count = db.execute(
+            text("SELECT COUNT(*) FROM user_learning_subscriptions WHERE status='active'")
+        ).scalar()
+        lesson_count = db.execute(text("SELECT COUNT(*) FROM generated_lessons")).scalar()
+
+        repo = LearningRepository(db)
+        topics = repo.get_all_topics()
+
+        return {
+            "status": "ok",
+            "topics": topic_count,
+            "modules": module_count,
+            "active_subscriptions": sub_count,
+            "generated_lessons_cached": lesson_count,
+            "topic_breakdown": [
+                {"name": t.name, "modules": t.total_modules, "slug": t.slug}
+                for t in topics
+            ],
+        }
+    except Exception as exc:
+        return {"status": "error", "message": str(exc)}
+
+
+@router.post("/learning/send-lesson")
+async def admin_send_learning_lesson(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Immediately deliver the next lesson for ALL of the current user's
+    active learning subscriptions. Useful for testing without waiting
+    for the scheduler.
+    """
+    _check_admin_enabled()
+    from app.repositories.learning_repository import LearningRepository
+    from app.services.learning.newsletter_generator import LearningNewsletterGenerator
+
+    uid = UUID(user_id)
+    repo = LearningRepository(db)
+    subs = repo.get_user_subscriptions(uid)
+    active = [s for s in subs if s.status == "active"]
+
+    if not active:
+        return {
+            "status": "no_subscriptions",
+            "message": "You have no active learning subscriptions. "
+                       "Go to Learning Center and enroll in a track first.",
+        }
+
+    generator = LearningNewsletterGenerator(db)
+    results = []
+
+    for sub in active:
+        topic_name = sub.topic.name if sub.topic else str(sub.topic_id)
+        try:
+            sent = await generator.deliver(sub)
+            results.append({
+                "topic": topic_name,
+                "module": sub.current_module_sequence,
+                "status": "sent" if sent else "failed",
+            })
+            logger.info(
+                f"ADMIN | send-learning-lesson | user={user_id} "
+                f"topic={topic_name} status={'sent' if sent else 'failed'}"
+            )
+        except Exception as exc:
+            logger.error(
+                f"ADMIN | send-learning-lesson | FAILED | "
+                f"user={user_id} topic={topic_name} | {exc}",
+                exc_info=True,
+            )
+            results.append({
+                "topic": topic_name,
+                "module": sub.current_module_sequence,
+                "status": "error",
+                "error": str(exc),
+            })
+
+    sent_count = sum(1 for r in results if r["status"] == "sent")
+    return {
+        "status": "completed",
+        "sent": sent_count,
+        "total": len(results),
+        "results": results,
+    }

@@ -72,8 +72,10 @@ class LearningRepository:
     # ── Subscription management ───────────────────────────────────────────
 
     def get_subscription(self, user_id: UUID, topic_id: UUID) -> Optional[UserLearningSubscription]:
+        from sqlalchemy.orm import joinedload
         return (
             self.db.query(UserLearningSubscription)
+            .options(joinedload(UserLearningSubscription.topic))
             .filter(
                 UserLearningSubscription.user_id == user_id,
                 UserLearningSubscription.topic_id == topic_id,
@@ -82,8 +84,10 @@ class LearningRepository:
         )
 
     def get_user_subscriptions(self, user_id: UUID) -> List[UserLearningSubscription]:
+        from sqlalchemy.orm import joinedload
         return (
             self.db.query(UserLearningSubscription)
+            .options(joinedload(UserLearningSubscription.topic))
             .filter(UserLearningSubscription.user_id == user_id)
             .order_by(UserLearningSubscription.created_at)
             .all()
@@ -101,16 +105,27 @@ class LearningRepository:
         )
         self.db.add(sub)
         self.db.commit()
-        self.db.refresh(sub)
-        return sub
+        # Re-query with topic eager-loaded so callers can access sub.topic
+        from sqlalchemy.orm import joinedload
+        return (
+            self.db.query(UserLearningSubscription)
+            .options(joinedload(UserLearningSubscription.topic))
+            .filter(UserLearningSubscription.id == sub.id)
+            .first()
+        )
 
     def update_subscription_frequency(
         self, sub: UserLearningSubscription, frequency: str
     ) -> UserLearningSubscription:
         sub.frequency = frequency
         self.db.commit()
-        self.db.refresh(sub)
-        return sub
+        from sqlalchemy.orm import joinedload
+        return (
+            self.db.query(UserLearningSubscription)
+            .options(joinedload(UserLearningSubscription.topic))
+            .filter(UserLearningSubscription.id == sub.id)
+            .first()
+        )
 
     def delete_subscription(self, user_id: UUID, topic_id: UUID) -> bool:
         deleted = (
@@ -150,9 +165,11 @@ class LearningRepository:
         return datetime.now(timezone.utc) >= sub.last_sent_at + delta
 
     def get_all_due_subscriptions(self) -> List[UserLearningSubscription]:
-        """Return all active subscriptions that are due for delivery."""
+        """Return all active subscriptions that are due for delivery, with user eager-loaded."""
+        from sqlalchemy.orm import joinedload
         subs = (
             self.db.query(UserLearningSubscription)
+            .options(joinedload(UserLearningSubscription.user))
             .filter(UserLearningSubscription.status == "active")
             .all()
         )

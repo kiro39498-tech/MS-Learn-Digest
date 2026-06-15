@@ -210,4 +210,12 @@ export const getLearningStatus = () => api.get('/api/learning/status');
 
 export const seedLearningTopics = () => api.post('/api/learning/seed');
 
+// ── Learning Engine (admin) ───────────────────────────────────────────────────
+
+export const adminLearningStatus = () =>
+  api.get('/api/admin/learning/status');
+
+export const adminSendLearningLesson = () =>
+  api.post('/api/admin/learning/send-lesson', null, { timeout: 120000 });
+
 export default api;

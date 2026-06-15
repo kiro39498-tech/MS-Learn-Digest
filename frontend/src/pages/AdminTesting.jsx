@@ -3,12 +3,14 @@ import {
   Mail, Send, FileText, Eye, Settings, CheckCircle2, XCircle,
   Loader2, AlertTriangle, ExternalLink, Bug, RefreshCw, Database,
   Users, UserPlus, Copy, Play, ChevronDown, ChevronUp, RotateCcw,
+  GraduationCap, BookOpen,
 } from 'lucide-react';
 import {
   adminGetConfig, adminSmtpCheck, adminSendTestEmail,
   adminGenerateTestDigest, adminSendTestDigest, adminPreviewDigest,
   adminDebugOnboarding, adminCatalogSync, adminCatalogCacheStats,
   adminSendMyDigest, adminRepairTopics,
+  adminLearningStatus, adminSendLearningLesson,
   adminTeamCreate, adminTeamInvite, adminTeamAcceptInvite,
   adminTeamRejectInvite, adminTeamSendDigest, adminTeamDeliveryStatus,
 } from '../services/api';
@@ -138,6 +140,164 @@ function TopicRepairCard() {
       )}
       {st === S.error && <ResultCard status={st} result={data} />}
     </div>
+  );
+}
+
+// ── Learning Engine Section ────────────────────────────────────────────────────
+
+function LearningEngineSection() {
+  const [status, setStatus] = useState(null);
+  const [statusSt, setStatusSt] = useState(S.idle);
+  const [sendSt, setSendSt] = useState(S.idle);
+  const [sendData, setSendData] = useState(null);
+
+  const handleStatus = async () => {
+    setStatusSt(S.loading);
+    try {
+      const res = await adminLearningStatus();
+      setStatus(res.data);
+      setStatusSt(S.success);
+    } catch (err) {
+      setStatus(err.response?.data || { message: err.message });
+      setStatusSt(S.error);
+    }
+  };
+
+  const handleSendLesson = async () => {
+    setSendSt(S.loading);
+    setSendData(null);
+    try {
+      const res = await adminSendLearningLesson();
+      setSendData(res.data);
+      setSendSt(S.success);
+    } catch (err) {
+      setSendData(err.response?.data || { message: err.message });
+      setSendSt(S.error);
+    }
+  };
+
+  return (
+    <SectionCard icon={GraduationCap} title="Learning Engine" color="purple" collapsible>
+      <p className="text-sm text-gray-600 mb-4">
+        Test the Structured Learning Tracks engine independently from the digest system.
+        Check curriculum status and trigger immediate lesson delivery for your active tracks.
+      </p>
+
+      {/* Status check */}
+      <div className="border rounded-xl p-4 bg-white mb-3">
+        <h3 className="font-semibold text-sm text-ms-dark mb-3">Engine Status</h3>
+        <button
+          onClick={handleStatus}
+          disabled={statusSt === S.loading}
+          className="btn-secondary flex items-center text-sm"
+        >
+          {statusSt === S.loading
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Database className="h-4 w-4 mr-2" />}
+          Check Learning Engine Status
+        </button>
+
+        {statusSt === S.success && status && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Topics',      val: status.topics,                     warn: !status.topics },
+                { label: 'Modules',     val: status.modules,                    warn: !status.modules },
+                { label: 'Active Subs', val: status.active_subscriptions,       warn: false },
+                { label: 'Cached Lessons', val: status.generated_lessons_cached, warn: false },
+              ].map(({ label, val, warn }) => (
+                <div key={label} className="bg-gray-50 rounded-lg p-3 border">
+                  <p className="text-xs text-gray-500">{label}</p>
+                  <p className={clsx('text-lg font-bold mt-0.5', warn ? 'text-red-600' : 'text-ms-dark')}>
+                    {val ?? '—'}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {status.topic_breakdown && status.topic_breakdown.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 border">
+                <p className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wide">
+                  Curriculum Topics
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  {status.topic_breakdown.map((t) => (
+                    <div key={t.slug} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                      <span className="text-ms-dark font-medium">{t.name}</span>
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {t.modules} modules
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {statusSt === S.error && <ResultCard status={statusSt} result={status} />}
+      </div>
+
+      {/* Send lesson now */}
+      <div className="border rounded-xl p-4 bg-white">
+        <h3 className="font-semibold text-sm text-ms-dark mb-2">
+          Send My Next Lesson Now
+        </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Immediately delivers the next lesson email for all your active learning
+          tracks. Go to <strong>Learning Center</strong> to subscribe to a track first.
+          Each track sends a separate email.
+        </p>
+        <button
+          onClick={handleSendLesson}
+          disabled={sendSt === S.loading}
+          className={clsx(
+            'flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white',
+            sendSt === S.loading ? 'bg-purple-400 cursor-not-allowed' :
+            sendSt === S.success ? 'bg-green-600 hover:bg-green-700' :
+            'bg-purple-700 hover:bg-purple-800',
+          )}
+        >
+          {sendSt === S.loading
+            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating &amp; Sending…</>
+            : sendSt === S.success
+            ? <><CheckCircle2 className="h-4 w-4 mr-2" />Lessons Sent</>
+            : <><Send className="h-4 w-4 mr-2" />Send My Learning Lessons</>}
+        </button>
+
+        {sendSt === S.success && sendData && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm font-semibold text-green-800 mb-2">
+              ✅ {sendData.sent}/{sendData.total} lessons sent
+            </p>
+            {sendData.results && (
+              <div className="space-y-1">
+                {sendData.results.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-700">
+                      {r.topic} — Module {r.module}
+                    </span>
+                    <span className={clsx(
+                      'px-2 py-0.5 rounded-full font-medium',
+                      r.status === 'sent'   ? 'bg-green-100 text-green-700' :
+                      r.status === 'failed' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700',
+                    )}>
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {sendData.status === 'no_subscriptions' && (
+              <p className="text-sm text-yellow-700">
+                {sendData.message}
+              </p>
+            )}
+          </div>
+        )}
+        {sendSt === S.error && <ResultCard status={sendSt} result={sendData} />}
+      </div>
+    </SectionCard>
   );
 }
 
@@ -819,6 +979,9 @@ export default function AdminTesting() {
 
         </div>
       </SectionCard>
+
+      {/* ── Learning Engine Testing ── */}
+      <LearningEngineSection />
 
     </div>
   );
