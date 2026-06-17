@@ -205,3 +205,45 @@ class LearningRepository:
         self.db.commit()
         self.db.refresh(lesson)
         return lesson
+
+    # ── Analytics queries ─────────────────────────────────────────────────
+
+    def get_user_analytics(self, user_id: UUID, days: int = 30) -> dict:
+        """Return learning metrics for a user over the last N days."""
+        from datetime import timedelta
+        from sqlalchemy import func
+        from app.models.learning import LearningAnalytics
+
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        rows = (
+            self.db.query(LearningAnalytics)
+            .filter(
+                LearningAnalytics.user_id == user_id,
+                LearningAnalytics.sent_at >= since,
+            )
+            .all()
+        )
+
+        lessons_by_topic: dict = {}
+        milestones_hit = 0
+        for r in rows:
+            topic_id_str = str(r.topic_id)
+            lessons_by_topic[topic_id_str] = lessons_by_topic.get(topic_id_str, 0) + 1
+            if r.is_milestone:
+                milestones_hit += 1
+
+        subs = self.get_user_subscriptions(user_id)
+        longest_streak = max((s.longest_streak_days or 0 for s in subs), default=0)
+        current_streak = max((s.current_streak_days or 0 for s in subs), default=0)
+        total_sent = sum(s.total_lessons_sent or 0 for s in subs)
+
+        return {
+            "lessons_last_30_days": len(rows),
+            "total_lessons_sent": total_sent,
+            "milestones_completed": milestones_hit,
+            "current_streak_days": current_streak,
+            "longest_streak_days": longest_streak,
+            "lessons_by_topic": lessons_by_topic,
+            "active_tracks": sum(1 for s in subs if s.status == "active"),
+            "completed_tracks": sum(1 for s in subs if s.status == "completed"),
+        }

@@ -1,15 +1,13 @@
 /**
- * Learning Center — Browse, subscribe, and track structured learning paths.
- *
- * Completely independent from the Update Digest / News system.
+ * Learning Center — Professional Learning Platform
+ * Shows phases, streaks, milestones, skill levels, analytics dashboard
  */
-
 import { useState, useEffect, useCallback } from 'react';
 import {
-  BookOpen, GraduationCap, Play, Check, ChevronRight,
-  BarChart2, Clock, Zap, Loader2, XCircle, Trophy,
-  ChevronDown, ChevronUp, BookMarked, Target, AlertTriangle,
-  RefreshCw, CheckCircle2,
+  BookOpen, GraduationCap, Play, Check, Trophy, Flame,
+  ChevronDown, ChevronUp, Loader2, XCircle, CheckCircle2,
+  Target, Clock, BookMarked, BarChart2, AlertTriangle, RefreshCw,
+  Star, Zap, Award, TrendingUp,
 } from 'lucide-react';
 import {
   getLearningTopics, getMyLearningTracks,
@@ -19,35 +17,41 @@ import {
 import api from '../services/api';
 import clsx from 'clsx';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const FREQ_OPTIONS = [
-  { value: 'daily',    label: 'Daily',     desc: 'One lesson every day' },
-  { value: 'weekly',   label: 'Weekly',    desc: 'One lesson per week' },
+  { value: 'daily',    label: 'Daily',     desc: 'One lesson/day' },
+  { value: 'weekly',   label: 'Weekly',    desc: 'One lesson/week' },
   { value: 'biweekly', label: 'Bi-weekly', desc: 'Every two weeks' },
 ];
 
-const DIFF_COLORS = {
-  beginner:     'bg-green-100 text-green-700',
-  intermediate: 'bg-yellow-100 text-yellow-700',
-  advanced:     'bg-red-100 text-red-700',
+const SKILL_COLORS = {
+  beginner:     'bg-green-100 text-green-700 border-green-200',
+  intermediate: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  advanced:     'bg-red-100 text-red-700 border-red-200',
+  expert:       'bg-purple-100 text-purple-700 border-purple-200',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function ProgressBar({ pct, status }) {
+function ProgressBar({ pct, status, height = 'h-2' }) {
   const color = status === 'completed' ? 'bg-green-500' : 'bg-ms-blue';
   return (
-    <div className="mt-2">
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{status === 'completed' ? '✅ Completed' : `${pct}% complete`}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={clsx('h-2 rounded-full transition-all duration-500', color)}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+    <div className={`${height} bg-gray-200 rounded-full overflow-hidden`}>
+      <div className={clsx(height, 'rounded-full transition-all duration-700', color)}
+        style={{ width: `${pct}%` }} />
     </div>
+  );
+}
+
+function SkillBadge({ level }) {
+  return (
+    <span className={clsx(
+      'text-xs font-semibold px-2 py-0.5 rounded-full border',
+      SKILL_COLORS[level] || 'bg-gray-100 text-gray-600 border-gray-200',
+    )}>
+      {level?.charAt(0).toUpperCase() + level?.slice(1)}
+    </span>
   );
 }
 
@@ -55,20 +59,12 @@ function FrequencyPicker({ value, onChange, disabled }) {
   return (
     <div className="flex gap-2 flex-wrap">
       {FREQ_OPTIONS.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(opt.value)}
+        <button key={opt.value} type="button" disabled={disabled} onClick={() => onChange(opt.value)}
           title={opt.desc}
-          className={clsx(
-            'px-3 py-1.5 rounded-lg border text-xs font-medium transition-all',
-            value === opt.value
-              ? 'border-ms-blue bg-blue-50 text-ms-blue'
-              : 'border-gray-200 text-gray-600 hover:border-gray-300',
+          className={clsx('px-3 py-1.5 rounded-lg border text-xs font-medium transition-all',
+            value === opt.value ? 'border-ms-blue bg-blue-50 text-ms-blue' : 'border-gray-200 text-gray-600 hover:border-gray-300',
             disabled && 'opacity-50 cursor-not-allowed',
-          )}
-        >
+          )}>
           {opt.label}
         </button>
       ))}
@@ -76,91 +72,130 @@ function FrequencyPicker({ value, onChange, disabled }) {
   );
 }
 
-// ── Migration / seed error banner ─────────────────────────────────────────────
+// ── Analytics Widget ──────────────────────────────────────────────────────────
 
-function SetupBanner({ onSeed, seeding }) {
+function AnalyticsDashboard({ analytics }) {
+  if (!analytics) return null;
+  const metrics = [
+    { label: 'Lessons This Month', value: analytics.lessons_last_30_days, icon: BookOpen, color: 'text-ms-blue' },
+    { label: 'Total Lessons',      value: analytics.total_lessons_sent,   icon: TrendingUp, color: 'text-green-600' },
+    { label: 'Milestones Hit',     value: analytics.milestones_completed, icon: Award, color: 'text-yellow-500' },
+    { label: 'Best Streak',        value: `${analytics.longest_streak_days}d`, icon: Flame, color: 'text-orange-500' },
+  ];
   return (
-    <div className="card border-2 border-yellow-300 bg-yellow-50">
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="h-6 w-6 text-yellow-600 shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="font-semibold text-yellow-800">Learning Engine — Setup Required</h3>
-          <p className="text-sm text-yellow-700 mt-1">
-            The learning curriculum hasn't been seeded yet. This usually means the database
-            migration needs to be applied, or the server just restarted.
-          </p>
-          <div className="mt-3 space-y-1 text-xs text-yellow-700 font-mono bg-yellow-100 rounded-lg p-3">
-            <p># Run inside your backend container:</p>
-            <p className="font-bold">alembic upgrade head</p>
+    <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+      <h3 className="text-sm font-bold text-ms-dark mb-3 flex items-center gap-2">
+        <BarChart2 className="h-4 w-4 text-ms-blue" /> Your Learning Analytics
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {metrics.map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-white rounded-xl p-3 text-center shadow-sm border border-blue-100">
+            <Icon className={clsx('h-5 w-5 mx-auto mb-1', color)} />
+            <p className="text-xl font-bold text-ms-dark">{value}</p>
+            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
           </div>
-          <button
-            onClick={onSeed}
-            disabled={seeding}
-            className="mt-4 flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-          >
-            {seeding
-              ? <><Loader2 className="h-4 w-4 animate-spin" />Seeding…</>
-              : <><RefreshCw className="h-4 w-4" />Seed Curriculum Now</>
-            }
-          </button>
-        </div>
+        ))}
       </div>
+      {analytics.current_streak_days > 1 && (
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-orange-600">
+          <Flame className="h-4 w-4" /> {analytics.current_streak_days}-day streak! Keep it going 🔥
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Active track card ─────────────────────────────────────────────────────────
+// ── Active Track Card ─────────────────────────────────────────────────────────
 
 function ActiveTrackCard({ progress, onUnsubscribe, onFrequencyChange }) {
-  const [showModules, setShowModules] = useState(false);
+  const [showCurriculum, setShowCurriculum] = useState(false);
   const [modules, setModules] = useState([]);
   const [loadingMods, setLoadingMods] = useState(false);
   const [freq, setFreq] = useState(progress.frequency);
   const [updatingFreq, setUpdatingFreq] = useState(false);
 
-  const handleToggleModules = async () => {
-    if (!showModules && modules.length === 0) {
+  const handleToggleCurriculum = async () => {
+    if (!showCurriculum && modules.length === 0) {
       setLoadingMods(true);
-      try {
-        const res = await getLearningTopicModules(progress.topic_id);
-        setModules(res.data);
-      } catch (_) {}
+      try { const r = await getLearningTopicModules(progress.topic_id); setModules(r.data); }
+      catch (_) {}
       setLoadingMods(false);
     }
-    setShowModules((v) => !v);
+    setShowCurriculum(v => !v);
   };
 
-  const handleFreqChange = async (newFreq) => {
-    setFreq(newFreq);
-    setUpdatingFreq(true);
-    try {
-      await onFrequencyChange(progress.topic_id, newFreq);
-    } finally {
-      setUpdatingFreq(false);
-    }
+  const handleFreqChange = async (f) => {
+    setFreq(f); setUpdatingFreq(true);
+    try { await onFrequencyChange(progress.topic_id, f); } finally { setUpdatingFreq(false); }
   };
+
+  // Group modules by phase
+  const phases = modules.reduce((acc, mod) => {
+    const p = mod.phase_name || 'General';
+    if (!acc[p]) acc[p] = [];
+    acc[p].push(mod);
+    return acc;
+  }, {});
+
+  const isMilestone = modules.find(m => m.sequence_number === progress.current_module_sequence)?.is_milestone;
 
   return (
-    <div className="card border border-gray-200">
+    <div className={clsx('card border-2 transition-colors', isMilestone ? 'border-yellow-300 bg-yellow-50/30' : 'border-gray-200')}>
+      {isMilestone && (
+        <div className="flex items-center gap-2 text-xs font-bold text-yellow-700 bg-yellow-100 rounded-lg px-3 py-1.5 mb-3">
+          <Trophy className="h-3.5 w-3.5" /> Next up: Milestone Project!
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="text-3xl">{progress.topic_icon || '📚'}</span>
           <div>
-            <h3 className="font-semibold text-ms-dark">{progress.topic_name}</h3>
+            <h3 className="font-bold text-ms-dark">{progress.topic_name}</h3>
+            {progress.current_phase_name && (
+              <p className="text-xs text-ms-blue font-medium mt-0.5">{progress.current_phase_name}</p>
+            )}
             <p className="text-xs text-gray-500 mt-0.5">
-              Module {progress.current_module_sequence} of {progress.total_modules}
-              &nbsp;·&nbsp;{progress.modules_completed} completed
-              &nbsp;·&nbsp;{progress.modules_remaining} remaining
+              Module {progress.current_module_sequence}/{progress.total_modules}
+              {' · '}{progress.modules_remaining} remaining
             </p>
           </div>
         </div>
-        {progress.status === 'completed' && (
-          <Trophy className="h-6 w-6 text-yellow-500 shrink-0" />
-        )}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <SkillBadge level={progress.skill_level || 'beginner'} />
+          {progress.current_streak_days > 0 && (
+            <span className="text-xs font-semibold text-orange-500 flex items-center gap-0.5">
+              <Flame className="h-3 w-3" /> {progress.current_streak_days}d streak
+            </span>
+          )}
+        </div>
       </div>
 
-      <ProgressBar pct={progress.progress_pct} status={progress.status} />
+      {/* Progress */}
+      <div className="mt-3">
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Progress</span>
+          <span className="font-semibold">{progress.progress_pct}%</span>
+        </div>
+        <ProgressBar pct={progress.progress_pct} status={progress.status} />
+      </div>
+
+      {/* Stats row */}
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <div className="bg-gray-50 rounded-lg p-2 border">
+          <p className="text-xs text-gray-500">Completed</p>
+          <p className="text-sm font-bold text-ms-dark">{progress.modules_completed}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-2 border">
+          <p className="text-xs text-gray-500">Total Sent</p>
+          <p className="text-sm font-bold text-ms-dark">{progress.total_lessons_sent || 0}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-2 border">
+          <p className="text-xs text-gray-500">Best Streak</p>
+          <p className="text-sm font-bold text-orange-500">{progress.longest_streak_days || 0}d</p>
+        </div>
+      </div>
 
       {/* Frequency */}
       {progress.status !== 'completed' && (
@@ -170,207 +205,218 @@ function ActiveTrackCard({ progress, onUnsubscribe, onFrequencyChange }) {
         </div>
       )}
 
-      {/* Last sent */}
       {progress.last_sent_at && (
         <p className="text-xs text-gray-400 mt-3">
-          Last lesson:{' '}
-          {new Date(progress.last_sent_at).toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          })}
+          Last lesson: {new Date(progress.last_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
       )}
 
       {/* Actions */}
       <div className="mt-4 flex items-center gap-3 flex-wrap">
-        <button
-          onClick={handleToggleModules}
-          className="btn-secondary text-xs flex items-center gap-1"
-        >
-          {loadingMods
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : showModules
-              ? <ChevronUp className="h-3.5 w-3.5" />
-              : <ChevronDown className="h-3.5 w-3.5" />
-          }
-          {showModules ? 'Hide' : 'View'} Curriculum
+        <button onClick={handleToggleCurriculum} className="btn-secondary text-xs flex items-center gap-1">
+          {loadingMods ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : showCurriculum ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {showCurriculum ? 'Hide' : 'View'} Curriculum
         </button>
-        <button
-          onClick={() => onUnsubscribe(progress.topic_id)}
-          className="text-xs text-red-400 hover:text-red-600 transition-colors"
-        >
+        <button onClick={() => onUnsubscribe(progress.topic_id)}
+          className="text-xs text-red-400 hover:text-red-600 transition-colors">
           Unsubscribe
         </button>
       </div>
 
-      {/* Curriculum module list */}
-      {showModules && modules.length > 0 && (
-        <div className="mt-4 border-t pt-4 max-h-64 overflow-y-auto">
-          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-            Curriculum — {modules.length} modules
-          </p>
-          <div className="space-y-1">
-            {modules.map((mod) => {
-              const done    = mod.sequence_number < progress.current_module_sequence;
-              const current = mod.sequence_number === progress.current_module_sequence;
-              return (
-                <div
-                  key={mod.id}
-                  className={clsx(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm',
-                    done    && 'bg-green-50 text-green-700',
-                    current && 'bg-blue-50 text-ms-blue font-medium border border-blue-200',
-                    !done && !current && 'text-gray-400',
-                  )}
-                >
-                  <span className="text-xs font-mono w-6 shrink-0 text-gray-400">
-                    {String(mod.sequence_number).padStart(2, '0')}
-                  </span>
-                  <span className="flex-1 truncate">{mod.title}</span>
-                  {done    && <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />}
-                  {current && <Play  className="h-3.5 w-3.5 text-ms-blue shrink-0" />}
-                  <span className={clsx(
-                    'text-xs px-2 py-0.5 rounded-full shrink-0',
-                    DIFF_COLORS[mod.difficulty_level] || 'bg-gray-100 text-gray-500',
-                  )}>
-                    {mod.difficulty_level}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {/* Phase-grouped curriculum */}
+      {showCurriculum && modules.length > 0 && (
+        <div className="mt-4 border-t pt-4 max-h-72 overflow-y-auto space-y-3">
+          {Object.entries(phases).map(([phaseName, phaseMods]) => (
+            <div key={phaseName}>
+              <p className="text-xs font-bold text-ms-blue uppercase tracking-wide mb-1.5">{phaseName}</p>
+              <div className="space-y-1">
+                {phaseMods.map((mod) => {
+                  const done    = mod.sequence_number < progress.current_module_sequence;
+                  const current = mod.sequence_number === progress.current_module_sequence;
+                  return (
+                    <div key={mod.id} className={clsx(
+                      'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs',
+                      mod.is_milestone && done    ? 'bg-yellow-50 border border-yellow-200' :
+                      mod.is_milestone && current ? 'bg-yellow-100 border border-yellow-300 font-bold' :
+                      done    ? 'bg-green-50 text-green-700' :
+                      current ? 'bg-blue-50 text-ms-blue font-semibold border border-blue-200' : 'text-gray-400',
+                    )}>
+                      <span className="text-gray-300 font-mono w-5 shrink-0">{String(mod.sequence_number).padStart(2,'0')}</span>
+                      {mod.is_milestone && <Trophy className="h-3 w-3 text-yellow-500 shrink-0" />}
+                      <span className="flex-1 truncate">{mod.title}</span>
+                      {done    && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+                      {current && <Play  className="h-3.5 w-3.5 text-ms-blue shrink-0" />}
+                      <SkillBadge level={mod.skill_level || mod.difficulty_level} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-// ── Browse topic card ─────────────────────────────────────────────────────────
+// ── Browse Topic Card ─────────────────────────────────────────────────────────
 
 function TopicCard({ topic, onSubscribe }) {
   const [freq, setFreq] = useState('weekly');
   const [subscribing, setSubscribing] = useState(false);
-  const [showModules, setShowModules] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [modules, setModules] = useState([]);
   const [loadingMods, setLoadingMods] = useState(false);
 
   const handlePreview = async () => {
-    if (!showModules && modules.length === 0) {
+    if (!showPreview && modules.length === 0) {
       setLoadingMods(true);
-      try {
-        const res = await getLearningTopicModules(topic.id);
-        setModules(res.data);
-      } catch (_) {}
+      try { const r = await getLearningTopicModules(topic.id); setModules(r.data); }
+      catch (_) {}
       setLoadingMods(false);
     }
-    setShowModules((v) => !v);
+    setShowPreview(v => !v);
   };
 
   const handleSubscribe = async () => {
     setSubscribing(true);
-    try {
-      await onSubscribe(topic.id, freq);
-    } finally {
-      setSubscribing(false);
-    }
+    try { await onSubscribe(topic.id, freq); } finally { setSubscribing(false); }
   };
 
+  // Summary stats from modules
+  const phaseCount = showPreview ? new Set(modules.map(m => m.phase_name)).size : 0;
+  const milestoneCount = showPreview ? modules.filter(m => m.is_milestone).length : 0;
+
   return (
-    <div className="card border border-gray-200 hover:border-ms-blue transition-colors flex flex-col">
+    <div className="card border border-gray-200 hover:border-ms-blue hover:shadow-md transition-all flex flex-col">
       {/* Topic header */}
       <div className="flex items-start gap-3">
         <span className="text-3xl shrink-0">{topic.icon || '📚'}</span>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-ms-dark">{topic.name}</h3>
+          <h3 className="font-bold text-ms-dark">{topic.name}</h3>
           {topic.description && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{topic.description}</p>
           )}
           <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
             <span className="flex items-center gap-1">
-              <BookMarked className="h-3.5 w-3.5" />
-              {topic.total_modules} modules
+              <BookMarked className="h-3.5 w-3.5" />{topic.total_modules} lessons
             </span>
             {topic.estimated_hours && (
               <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                ~{topic.estimated_hours}h
+                <Clock className="h-3.5 w-3.5" />~{topic.estimated_hours}h
               </span>
             )}
             {topic.difficulty_range && (
               <span className="flex items-center gap-1">
-                <Target className="h-3.5 w-3.5" />
-                {topic.difficulty_range}
+                <Target className="h-3.5 w-3.5" />{topic.difficulty_range}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Curriculum preview */}
+      {/* Curriculum preview toggle */}
       <div className="mt-3">
-        <button
-          type="button"
-          onClick={handlePreview}
-          className="text-xs text-ms-blue hover:underline flex items-center gap-1"
-        >
-          {loadingMods
-            ? <Loader2 className="h-3 w-3 animate-spin" />
-            : showModules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-          }
-          {showModules ? 'Hide' : 'Preview'} curriculum
+        <button type="button" onClick={handlePreview}
+          className="text-xs text-ms-blue hover:underline flex items-center gap-1">
+          {loadingMods ? <Loader2 className="h-3 w-3 animate-spin" />
+            : showPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {showPreview ? 'Hide' : 'Preview'} curriculum
         </button>
 
-        {showModules && modules.length > 0 && (
-          <div className="mt-2 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1">
-            {modules.map((mod) => (
-              <div key={mod.id} className="flex items-center gap-2 text-xs text-gray-600">
-                <span className="font-mono text-gray-400 w-5 shrink-0">
-                  {String(mod.sequence_number).padStart(2, '0')}
-                </span>
-                <span className="flex-1 truncate">{mod.title}</span>
-                <span className={clsx(
-                  'px-1.5 py-0.5 rounded text-xs shrink-0',
-                  DIFF_COLORS[mod.difficulty_level] || 'bg-gray-100 text-gray-500',
-                )}>
-                  {mod.difficulty_level.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            ))}
+        {showPreview && modules.length > 0 && (
+          <div className="mt-2">
+            {/* Quick stats */}
+            <div className="flex gap-2 mb-2 text-xs text-gray-500">
+              <span className="bg-gray-100 px-2 py-0.5 rounded-full">{phaseCount} phases</span>
+              <span className="bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full border border-yellow-200">
+                🏆 {milestoneCount} milestones
+              </span>
+            </div>
+            {/* Module list grouped by phase */}
+            {(() => {
+              const phases = modules.reduce((acc, mod) => {
+                const p = mod.phase_name || 'General';
+                if (!acc[p]) acc[p] = [];
+                acc[p].push(mod);
+                return acc;
+              }, {});
+              return (
+                <div className="bg-gray-50 rounded-lg p-3 max-h-52 overflow-y-auto space-y-3">
+                  {Object.entries(phases).map(([phaseName, phaseMods]) => (
+                    <div key={phaseName}>
+                      <p className="text-xs font-bold text-ms-blue mb-1">{phaseName}</p>
+                      {phaseMods.map(mod => (
+                        <div key={mod.id} className="flex items-center gap-2 text-xs text-gray-600 py-0.5">
+                          <span className="font-mono text-gray-300 w-5">{String(mod.sequence_number).padStart(2,'0')}</span>
+                          {mod.is_milestone && <Trophy className="h-3 w-3 text-yellow-500 shrink-0" />}
+                          <span className="flex-1 truncate">{mod.title}</span>
+                          <SkillBadge level={mod.skill_level || mod.difficulty_level} />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
 
-      {/* Frequency & enroll */}
-      <div className="mt-4 pt-4 border-t">
+      {/* Frequency + enroll */}
+      <div className="mt-auto pt-4 border-t mt-4">
         <p className="text-xs text-gray-500 mb-2 font-medium">Delivery frequency</p>
         <FrequencyPicker value={freq} onChange={setFreq} />
       </div>
 
-      <button
-        onClick={handleSubscribe}
-        disabled={subscribing}
-        className="mt-4 w-full btn-primary flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-      >
+      <button onClick={handleSubscribe} disabled={subscribing}
+        className="mt-4 w-full btn-primary flex items-center justify-center gap-2 text-sm disabled:opacity-50">
         {subscribing
           ? <><Loader2 className="h-4 w-4 animate-spin" />Enrolling…</>
-          : <><Play className="h-4 w-4" />Start Learning</>
-        }
+          : <><Play className="h-4 w-4" />Start Learning</>}
       </button>
     </div>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Setup Banner ──────────────────────────────────────────────────────────────
+
+function SetupBanner({ onSeed, seeding }) {
+  return (
+    <div className="card border-2 border-yellow-300 bg-yellow-50">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="h-6 w-6 text-yellow-600 shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <h3 className="font-semibold text-yellow-800">Learning Engine — Setup Required</h3>
+          <p className="text-sm text-yellow-700 mt-1">
+            The learning curriculum hasn't been seeded. Apply the migration then click below.
+          </p>
+          <div className="mt-2 text-xs text-yellow-700 font-mono bg-yellow-100 rounded-lg p-3">
+            alembic upgrade head
+          </div>
+          <button onClick={onSeed} disabled={seeding}
+            className="mt-4 flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+            {seeding ? <><Loader2 className="h-4 w-4 animate-spin" />Seeding…</>
+              : <><RefreshCw className="h-4 w-4" />Seed Curriculum</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function LearningCenter() {
-  const [topics, setTopics] = useState([]);
-  const [myTracks, setMyTracks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [topics,    setTopics]    = useState([]);
+  const [myTracks,  setMyTracks]  = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [loading,   setLoading]   = useState(true);
   const [setupNeeded, setSetupNeeded] = useState(false);
-  const [seeding, setSeeding] = useState(false);
+  const [seeding,   setSeeding]   = useState(false);
   const [tab, setTab] = useState('browse');
   const [toast, setToast] = useState(null);
-  const [loadError, setLoadError] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -378,7 +424,6 @@ export default function LearningCenter() {
   };
 
   const loadData = useCallback(async () => {
-    setLoadError(null);
     try {
       const [topicsRes, myRes] = await Promise.all([
         getLearningTopics().catch(() => ({ data: [] })),
@@ -388,16 +433,16 @@ export default function LearningCenter() {
       const trackList = myRes.data || [];
       setTopics(topicList);
       setMyTracks(trackList);
+      setSetupNeeded(topicList.length === 0);
 
-      // If API returned empty topics, check if it's a setup issue
-      if (topicList.length === 0) {
-        setSetupNeeded(true);
-      } else {
-        setSetupNeeded(false);
+      // Load analytics separately — don't block on failure
+      if (trackList.length > 0) {
+        api.get('/api/learning/analytics')
+          .then(r => setAnalytics(r.data))
+          .catch(() => {});
       }
     } catch (err) {
       console.error(err);
-      setLoadError('Failed to load learning data. The learning engine may not be set up yet.');
       setSetupNeeded(true);
     } finally {
       setLoading(false);
@@ -409,33 +454,28 @@ export default function LearningCenter() {
   const handleSeed = async () => {
     setSeeding(true);
     try {
-      const res = await api.post('/api/learning/seed');
-      if (res.data.total_topics > 0) {
-        showToast(`✅ Seeded ${res.data.total_topics} learning topics!`);
+      const r = await api.post('/api/learning/seed');
+      if (r.data.total_topics > 0) {
+        showToast(`Seeded ${r.data.total_topics} learning topics!`);
         setSetupNeeded(false);
         await loadData();
-      } else {
-        showToast('Migration may not be applied yet. Run: alembic upgrade head', 'error');
       }
     } catch (err) {
-      showToast(
-        err.response?.data?.detail || 'Seed failed. Run alembic upgrade head first.',
-        'error',
-      );
+      showToast(err.response?.data?.detail || 'Seed failed — run alembic upgrade head first.', 'error');
     } finally {
       setSeeding(false);
     }
   };
 
-  const subscribedIds = new Set(myTracks.map((t) => String(t.topic_id)));
-  const availableTopics = topics.filter((t) => !subscribedIds.has(String(t.id)));
-  const activeTracks = myTracks.filter((t) => t.status === 'active');
-  const completedTracks = myTracks.filter((t) => t.status === 'completed');
+  const subscribedIds = new Set(myTracks.map(t => String(t.topic_id)));
+  const availableTopics = topics.filter(t => !subscribedIds.has(String(t.id)));
+  const activeTracks    = myTracks.filter(t => t.status === 'active');
+  const completedTracks = myTracks.filter(t => t.status === 'completed');
 
   const handleSubscribe = async (topicId, frequency) => {
     try {
       await subscribeToLearningTrack(topicId, frequency);
-      showToast('Enrolled! Your first lesson will arrive at the scheduled time.');
+      showToast('Enrolled! Your first lesson arrives at the scheduled time.');
       await loadData();
       setTab('active');
     } catch (err) {
@@ -444,10 +484,10 @@ export default function LearningCenter() {
   };
 
   const handleUnsubscribe = async (topicId) => {
-    if (!window.confirm('Unsubscribe from this learning track? Your progress will be lost.')) return;
+    if (!window.confirm('Unsubscribe? Your progress will be lost.')) return;
     try {
       await unsubscribeFromLearningTrack(topicId);
-      showToast('Unsubscribed from learning track.');
+      showToast('Unsubscribed from track.');
       await loadData();
     } catch (err) {
       showToast('Failed to unsubscribe', 'error');
@@ -472,6 +512,12 @@ export default function LearningCenter() {
     );
   }
 
+  const TAB_DEFS = [
+    { key: 'browse',    label: 'Browse Tracks',  count: availableTopics.length },
+    { key: 'active',    label: 'My Learning',     count: activeTracks.length },
+    { key: 'completed', label: 'Completed',       count: completedTracks.length },
+  ];
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
 
@@ -481,75 +527,61 @@ export default function LearningCenter() {
           'fixed top-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2',
           toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-green-600 text-white',
         )}>
-          {toast.type === 'error'
-            ? <XCircle className="h-4 w-4" />
-            : <CheckCircle2 className="h-4 w-4" />
-          }
+          {toast.type === 'error' ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
           {toast.msg}
         </div>
       )}
 
-      {/* Header */}
+      {/* Page header */}
       <div className="flex items-start gap-4">
         <div className="bg-ms-blue rounded-xl p-3">
           <GraduationCap className="h-6 w-6 text-white" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-ms-dark">Learning Center</h1>
-          <p className="text-gray-500 mt-1">
-            Progressive structured learning tracks delivered to your inbox.
-            Each track is independent — choose your own pace.
+          <p className="text-gray-500 mt-1 text-sm">
+            Professional learning tracks — Beginner to Expert. Phased curriculum, milestone projects,
+            interview prep, and AI-generated lessons delivered to your inbox.
           </p>
         </div>
       </div>
 
-      {/* Setup banner — shown when tables not seeded */}
+      {/* Setup banner */}
       {setupNeeded && <SetupBanner onSeed={handleSeed} seeding={seeding} />}
 
-      {/* Stats row — only when data is available */}
-      {!setupNeeded && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="card text-center">
-            <p className="text-3xl font-bold text-ms-blue">{activeTracks.length}</p>
-            <p className="text-xs text-gray-500 mt-1">Active Tracks</p>
-          </div>
-          <div className="card text-center">
-            <p className="text-3xl font-bold text-green-600">{completedTracks.length}</p>
-            <p className="text-xs text-gray-500 mt-1">Completed</p>
-          </div>
-          <div className="card text-center">
-            <p className="text-3xl font-bold text-purple-600">{topics.length}</p>
-            <p className="text-xs text-gray-500 mt-1">Topics Available</p>
-          </div>
-        </div>
-      )}
-
-      {/* Only show tabs when data is ready */}
       {!setupNeeded && topics.length > 0 && (
         <>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="card text-center">
+              <p className="text-3xl font-bold text-ms-blue">{activeTracks.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Active Tracks</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-3xl font-bold text-green-600">{completedTracks.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Completed</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-3xl font-bold text-purple-600">{topics.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Tracks Available</p>
+            </div>
+          </div>
+
+          {/* Analytics dashboard — only when user has tracks */}
+          {analytics && myTracks.length > 0 && (
+            <AnalyticsDashboard analytics={analytics} />
+          )}
+
           {/* Tabs */}
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-            {[
-              { key: 'browse',    label: 'Browse Topics', count: availableTopics.length },
-              { key: 'active',    label: 'My Tracks',     count: activeTracks.length },
-              { key: 'completed', label: 'Completed',     count: completedTracks.length },
-            ].map(({ key, label, count }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={clsx(
-                  'px-4 py-2 rounded-md text-sm font-medium transition-all',
-                  tab === key
-                    ? 'bg-white text-ms-blue shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800',
-                )}
-              >
+            {TAB_DEFS.map(({ key, label, count }) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={clsx('px-4 py-2 rounded-md text-sm font-medium transition-all',
+                  tab === key ? 'bg-white text-ms-blue shadow-sm' : 'text-gray-600 hover:text-gray-800')}>
                 {label}
                 {count > 0 && (
-                  <span className={clsx(
-                    'ml-2 text-xs px-1.5 py-0.5 rounded-full',
-                    tab === key ? 'bg-blue-100 text-ms-blue' : 'bg-gray-200 text-gray-500',
-                  )}>
+                  <span className={clsx('ml-2 text-xs px-1.5 py-0.5 rounded-full',
+                    tab === key ? 'bg-blue-100 text-ms-blue' : 'bg-gray-200 text-gray-500')}>
                     {count}
                   </span>
                 )}
@@ -564,41 +596,35 @@ export default function LearningCenter() {
                 <div className="text-center py-12 text-gray-400">
                   <Trophy className="h-10 w-10 mx-auto mb-3 opacity-40" />
                   <p className="font-medium">You're enrolled in all available tracks!</p>
-                  <p className="text-xs mt-1">Check your progress in "My Tracks".</p>
                   <button onClick={() => setTab('active')} className="btn-primary mt-4 text-sm">
                     View My Tracks →
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {availableTopics.map((topic) => (
-                    <TopicCard key={topic.id} topic={topic} onSubscribe={handleSubscribe} />
+                  {availableTopics.map(t => (
+                    <TopicCard key={t.id} topic={t} onSubscribe={handleSubscribe} />
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* ── My Tracks tab ── */}
+          {/* ── My Learning tab ── */}
           {tab === 'active' && (
             <div className="space-y-4">
               {activeTracks.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">No active learning tracks yet</p>
-                  <p className="text-xs mt-1">Browse topics to get started.</p>
+                  <p className="font-medium">No active tracks yet</p>
                   <button onClick={() => setTab('browse')} className="btn-primary mt-4 text-sm">
-                    Browse Topics →
+                    Browse Tracks →
                   </button>
                 </div>
               ) : (
-                activeTracks.map((track) => (
-                  <ActiveTrackCard
-                    key={track.topic_id}
-                    progress={track}
-                    onUnsubscribe={handleUnsubscribe}
-                    onFrequencyChange={handleFrequencyChange}
-                  />
+                activeTracks.map(track => (
+                  <ActiveTrackCard key={track.topic_id} progress={track}
+                    onUnsubscribe={handleUnsubscribe} onFrequencyChange={handleFrequencyChange} />
                 ))
               )}
             </div>
@@ -610,29 +636,32 @@ export default function LearningCenter() {
               {completedTracks.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Trophy className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">No completed tracks yet</p>
-                  <p className="text-xs mt-1">Keep learning — completions appear here.</p>
+                  <p className="font-medium">No completed tracks yet — keep going!</p>
                 </div>
               ) : (
-                completedTracks.map((track) => (
-                  <div key={track.topic_id} className="card border border-green-200 bg-green-50">
+                completedTracks.map(track => (
+                  <div key={track.topic_id}
+                    className="card border-2 border-green-200 bg-green-50">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{track.topic_icon || '📚'}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-ms-dark">{track.topic_name}</h3>
+                        <h3 className="font-bold text-ms-dark">{track.topic_name}</h3>
                         <p className="text-xs text-green-700 mt-0.5">
-                          ✅ Completed {track.total_modules} modules
+                          ✅ {track.total_modules} modules completed
                           {track.completed_at && (
-                            <> · {new Date(track.completed_at).toLocaleDateString('en-US', {
-                              month: 'short', day: 'numeric', year: 'numeric',
-                            })}</>
+                            <> · {new Date(track.completed_at).toLocaleDateString('en-US',
+                              { month: 'short', day: 'numeric', year: 'numeric' })}</>
                           )}
                         </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Best streak: {track.longest_streak_days || 0}d
+                          {' · '}{track.total_lessons_sent || 0} lessons received
+                        </p>
                       </div>
-                      <Trophy className="h-6 w-6 text-yellow-500 shrink-0" />
+                      <Trophy className="h-8 w-8 text-yellow-500 shrink-0" />
                     </div>
-                    <div className="mt-3 h-2 bg-green-200 rounded-full">
-                      <div className="h-2 bg-green-500 rounded-full w-full" />
+                    <div className="mt-3">
+                      <ProgressBar pct={100} status="completed" height="h-2" />
                     </div>
                   </div>
                 ))
@@ -641,7 +670,6 @@ export default function LearningCenter() {
           )}
         </>
       )}
-
     </div>
   );
 }

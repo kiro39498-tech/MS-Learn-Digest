@@ -31,6 +31,10 @@ class LearningModuleResponse(BaseModel):
     keywords: Optional[List[str]] = None
     estimated_duration_minutes: Optional[int] = None
     difficulty_level: str
+    phase_name: Optional[str] = None
+    phase_number: int = 1
+    is_milestone: bool = False
+    skill_level: str = "beginner"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -74,7 +78,25 @@ class LearningProgressResponse(BaseModel):
     progress_pct: int
     status: str
     frequency: str
+    skill_level: str = "beginner"
+    current_streak_days: int = 0
+    longest_streak_days: int = 0
+    total_lessons_sent: int = 0
     last_sent_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     modules_completed: int
     modules_remaining: int
+    # Current phase info
+    current_phase_name: Optional[str] = None
+    current_phase_number: int = 1
+
+
+class LearningAnalyticsResponse(BaseModel):
+    lessons_last_30_days: int
+    total_lessons_sent: int
+    milestones_completed: int
+    current_streak_days: int
+    longest_streak_days: int
+    lessons_by_topic: dict
+    active_tracks: int
+    completed_tracks: int

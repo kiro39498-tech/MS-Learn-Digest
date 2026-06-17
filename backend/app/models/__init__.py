@@ -9,4 +9,7 @@ from app.models.topic import Topic, UserSubscription
 from app.models.team import Team, TeamMember, TeamInvitation, TeamNewsletter, NewsletterTopic, SyncMetadata
 from app.models.catalog_cache import CatalogCache
 from app.models.digest import Digest, DigestItem
-from app.models.learning import LearningTopic, LearningModule, UserLearningSubscription, GeneratedLesson
+from app.models.learning import (
+    LearningTopic, LearningModule, UserLearningSubscription,
+    GeneratedLesson, LearningAnalytics, LearningWeeklyReview,
+)

@@ -28,6 +28,7 @@ from app.repositories.learning_repository import LearningRepository
 from app.schemas.learning import (
     LearningTopicResponse, LearningModuleResponse,
     LearningSubscriptionResponse, LearningProgressResponse,
+    LearningAnalyticsResponse,
     SubscribeRequest, UpdateFrequencyRequest,
 )
 
@@ -50,10 +51,16 @@ def _to_progress(sub, repo: LearningRepository) -> LearningProgressResponse:
         progress_pct=pct,
         status=sub.status,
         frequency=sub.frequency,
+        skill_level=getattr(sub, "skill_level", "beginner"),
+        current_streak_days=getattr(sub, "current_streak_days", 0) or 0,
+        longest_streak_days=getattr(sub, "longest_streak_days", 0) or 0,
+        total_lessons_sent=getattr(sub, "total_lessons_sent", 0) or 0,
         last_sent_at=sub.last_sent_at,
         completed_at=sub.completed_at,
         modules_completed=completed_count,
         modules_remaining=max(0, total - completed_count),
+        current_phase_name=getattr(current_mod, "phase_name", None) if current_mod else None,
+        current_phase_number=getattr(current_mod, "phase_number", 1) if current_mod else 1,
     )
 
 
@@ -214,6 +221,26 @@ async def get_completed_tracks(
     repo = LearningRepository(db)
     subs = repo.get_user_subscriptions(uid)
     return [_to_progress(s, repo) for s in subs if s.status == "completed"]
+
+
+@router.get("/analytics", response_model=LearningAnalyticsResponse)
+async def get_learning_analytics(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Learning analytics and metrics for the current user."""
+    uid = UUID(user_id)
+    repo = LearningRepository(db)
+    try:
+        return repo.get_user_analytics(uid)
+    except Exception as exc:
+        logger.warning(f"LEARNING | analytics error: {exc}")
+        return LearningAnalyticsResponse(
+            lessons_last_30_days=0, total_lessons_sent=0,
+            milestones_completed=0, current_streak_days=0,
+            longest_streak_days=0, lessons_by_topic={},
+            active_tracks=0, completed_tracks=0,
+        )
 
 
 # ── Status / seed endpoint (unauthenticated, for debugging) ───────────────────

@@ -206,6 +206,8 @@ export const getLearningProgress = (topicId) =>
 
 export const getCompletedTracks = () => api.get('/api/learning/completed');
 
+export const getLearningAnalytics = () => api.get('/api/learning/analytics');
+
 export const getLearningStatus = () => api.get('/api/learning/status');
 
 export const seedLearningTopics = () => api.post('/api/learning/seed');

@@ -1,14 +1,13 @@
 """
-Learning Track Models — Structured Progressive Learning Engine
-
-These models are completely independent from the digest/catalog system.
-They represent the Learning Engine's data layer.
+Learning Track Models — Enhanced Professional Learning Platform
 
 Tables:
-  LearningTopic               — a curriculum topic (Azure, Fabric, etc.)
-  LearningModule              — one lesson within a topic, in sequence order
-  UserLearningSubscription    — a user's enrollment in a topic + progress state
-  GeneratedLesson             — cached AI-generated lesson content (shared across users)
+  LearningTopic            — curriculum topic with metadata
+  LearningModule           — ordered lesson with phase/milestone/skill_level
+  UserLearningSubscription — enrollment with streak + analytics counters
+  GeneratedLesson          — cached AI lesson (reused across users)
+  LearningAnalytics        — per-delivery audit log for dashboard metrics
+  LearningWeeklyReview     — cached weekly summary emails
 """
 
 from sqlalchemy import (
@@ -23,12 +22,6 @@ from app.core.database import Base
 
 
 class LearningTopic(Base):
-    """
-    A structured learning curriculum (e.g. "Azure", "Microsoft Fabric").
-
-    Each topic has an ordered list of modules that form its curriculum.
-    Users subscribe to topics — not to individual modules.
-    """
     __tablename__ = "learning_topics"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -37,12 +30,11 @@ class LearningTopic(Base):
     description = Column(Text, nullable=True)
     icon = Column(String(50), nullable=True)
     total_modules = Column(Integer, nullable=False, default=0)
-    difficulty_range = Column(String(100), nullable=True)   # "Beginner → Advanced"
+    difficulty_range = Column(String(100), nullable=True)
     estimated_hours = Column(Integer, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
-    # Relationships
     modules = relationship(
         "LearningModule",
         back_populates="topic",
@@ -57,12 +49,6 @@ class LearningTopic(Base):
 
 
 class LearningModule(Base):
-    """
-    One lesson within a learning topic curriculum.
-
-    Modules are ordered by sequence_number (1, 2, 3, …).
-    Difficulty progresses from beginner to advanced across the sequence.
-    """
     __tablename__ = "learning_modules"
     __table_args__ = (
         UniqueConstraint("topic_id", "sequence_number", name="uq_module_topic_seq"),
@@ -72,8 +58,7 @@ class LearningModule(Base):
     topic_id = Column(
         UUID(as_uuid=True),
         ForeignKey("learning_topics.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+        nullable=False, index=True,
     )
     sequence_number = Column(Integer, nullable=False)
     title = Column(String(500), nullable=False)
@@ -81,13 +66,20 @@ class LearningModule(Base):
     learning_objectives = Column(ARRAY(Text), nullable=True)
     keywords = Column(ARRAY(Text), nullable=True)
     estimated_duration_minutes = Column(Integer, nullable=True)
-    difficulty_level = Column(
-        String(50), nullable=False, default="beginner"
-    )  # beginner | intermediate | advanced
+
+    # Original field kept for compat
+    difficulty_level = Column(String(50), nullable=False, default="beginner")
+
+    # Enhanced fields (added in migration g7h8i9j0k1l2)
+    phase_name = Column(String(200), nullable=True)      # "Phase 1: Fundamentals"
+    phase_number = Column(Integer, nullable=False, default=1)
+    is_milestone = Column(Boolean, nullable=False, default=False)  # capstone/project
+    skill_level = Column(String(50), nullable=False, default="beginner")
+    # beginner | intermediate | advanced | expert
+
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
-    # Relationships
     topic = relationship("LearningTopic", back_populates="modules")
     generated_lesson = relationship(
         "GeneratedLesson",
@@ -98,13 +90,6 @@ class LearningModule(Base):
 
 
 class UserLearningSubscription(Base):
-    """
-    A user's enrollment in a learning topic.
-
-    Tracks which module they're on and when they last received an email.
-    Each subscription progresses independently — subscribing to Azure and
-    Fabric results in two completely separate email streams.
-    """
     __tablename__ = "user_learning_subscriptions"
     __table_args__ = (
         UniqueConstraint("user_id", "topic_id", name="uq_user_learning_topic"),
@@ -114,57 +99,109 @@ class UserLearningSubscription(Base):
     user_id = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+        nullable=False, index=True,
     )
     topic_id = Column(
         UUID(as_uuid=True),
         ForeignKey("learning_topics.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+        nullable=False, index=True,
     )
-    frequency = Column(String(50), nullable=False, default="weekly")  # daily | weekly | biweekly
+    frequency = Column(String(50), nullable=False, default="weekly")
     current_module_sequence = Column(Integer, nullable=False, default=1)
     last_sent_at = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String(50), nullable=False, default="active")  # active | completed | paused
+    status = Column(String(50), nullable=False, default="active")
     created_at = Column(DateTime(timezone=True), default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
+    # Enhanced analytics fields (migration g7h8i9j0k1l2)
+    skill_level = Column(String(50), nullable=False, default="beginner")
+    current_streak_days = Column(Integer, nullable=False, default=0)
+    longest_streak_days = Column(Integer, nullable=False, default=0)
+    total_lessons_sent = Column(Integer, nullable=False, default=0)
+    total_quiz_questions = Column(Integer, nullable=False, default=0)
+
     user = relationship("User")
     topic = relationship("LearningTopic", back_populates="subscriptions")
+    analytics = relationship(
+        "LearningAnalytics",
+        back_populates="subscription",
+        cascade="all, delete-orphan",
+    )
 
 
 class GeneratedLesson(Base):
-    """
-    AI-generated lesson content for one module.
-
-    Generated once per module and reused for all users.
-    This eliminates redundant Groq calls — the cost is paid once regardless
-    of how many users are enrolled in the same topic.
-    """
     __tablename__ = "generated_lessons"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     topic_id = Column(
         UUID(as_uuid=True),
         ForeignKey("learning_topics.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    module_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("learning_modules.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True,
+    )
+    generated_content = Column(Text, nullable=False)
+    content_json = Column(JSONB, nullable=True)
+    resource_links = Column(JSONB, nullable=True)
+    generation_model = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    topic = relationship("LearningTopic")
+    module = relationship("LearningModule", back_populates="generated_lesson")
+
+
+class LearningAnalytics(Base):
+    """Per-delivery audit log. Used to power dashboard metrics."""
+    __tablename__ = "learning_analytics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subscription_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("user_learning_subscriptions.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    topic_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("learning_topics.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     module_id = Column(
         UUID(as_uuid=True),
         ForeignKey("learning_modules.id", ondelete="CASCADE"),
         nullable=False,
-        unique=True,
-        index=True,
     )
-    generated_content = Column(Text, nullable=False)   # full rendered HTML
-    content_json = Column(JSONB, nullable=True)         # structured Groq output
-    resource_links = Column(JSONB, nullable=True)       # [{title, url, source}]
-    generation_model = Column(String(100), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=func.now())
+    module_sequence = Column(Integer, nullable=False)
+    sent_at = Column(DateTime(timezone=True), default=func.now(), nullable=False, index=True)
+    difficulty_level = Column(String(50), nullable=True)
+    phase_name = Column(String(200), nullable=True)
+    is_milestone = Column(Boolean, nullable=False, default=False)
 
-    # Relationships
-    topic = relationship("LearningTopic")
-    module = relationship("LearningModule", back_populates="generated_lesson")
+    subscription = relationship("UserLearningSubscription", back_populates="analytics")
+
+
+class LearningWeeklyReview(Base):
+    """Cached weekly summary email sent every Sunday."""
+    __tablename__ = "learning_weekly_reviews"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    week_start = Column(DateTime(timezone=True), nullable=False, index=True)
+    week_end = Column(DateTime(timezone=True), nullable=False)
+    lessons_completed = Column(Integer, nullable=False, default=0)
+    topics_covered = Column(ARRAY(Text), nullable=True)
+    content_html = Column(Text, nullable=False, default="")
+    content_json = Column(JSONB, nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
