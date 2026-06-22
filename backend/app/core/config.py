@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # ── Team Invitations ──
     INVITATION_EXPIRY_HOURS: int = 72   # tokens expire after 3 days
 
+    # ── Email Login ──
+    EMAIL_LOGIN_TOKEN_EXPIRY_MINUTES: int = 15   # magic link expires in 15 min
+    EMAIL_LOGIN_MAX_ATTEMPTS_PER_HOUR: int = 5   # rate limit per email address
+
     class Config:
         env_file = "../.env"
         env_file_encoding = "utf-8"

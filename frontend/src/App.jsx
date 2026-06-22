@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import AuthCallback from './pages/AuthCallback';
+import EmailAuthCallback from './pages/EmailAuthCallback';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Preferences from './pages/Preferences';
@@ -30,6 +31,7 @@ function App() {
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/email/callback" element={<EmailAuthCallback />} />
 
           {/* Team invitation — public, no auth wall */}
           <Route path="/team-invite/:token" element={<TeamInvite />} />

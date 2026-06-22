@@ -36,6 +36,15 @@ api.interceptors.response.use(
 export const exchangeGoogleCode = (code, redirectUri) =>
   api.post('/api/auth/google', { code, redirect_uri: redirectUri });
 
+export const requestEmailLogin = (email) =>
+  api.post('/api/auth/email/request', { email });
+
+export const verifyEmailToken = (token) =>
+  api.post('/api/auth/email/verify', { token });
+
+export const getAuthProviders = () =>
+  api.get('/api/auth/providers');
+
 // ── User ──────────────────────────────────────────────────────────────────────
 
 export const getMe = () => api.get('/api/users/me');
@@ -190,9 +199,6 @@ export const getLearningTopic = (topicId) => api.get(`/api/learning/topics/${top
 export const getLearningTopicModules = (topicId) =>
   api.get(`/api/learning/topics/${topicId}/modules`);
 
-export const subscribeToLearningTrack = (topicId, frequency) =>
-  api.post('/api/learning/subscribe', { topic_id: topicId, frequency });
-
 export const unsubscribeFromLearningTrack = (topicId) =>
   api.delete(`/api/learning/subscribe/${topicId}`);
 
@@ -211,6 +217,23 @@ export const getLearningAnalytics = () => api.get('/api/learning/analytics');
 export const getLearningStatus = () => api.get('/api/learning/status');
 
 export const seedLearningTopics = () => api.post('/api/learning/seed');
+
+export const getLearningTopicPhases = (topicId) =>
+  api.get(`/api/learning/topics/${topicId}/phases`);
+
+export const subscribeToLearningTrack = (topicId, frequency, isFullTrack = true, selectedPhases = []) =>
+  api.post('/api/learning/subscribe', {
+    topic_id: topicId,
+    frequency,
+    is_full_track: isFullTrack,
+    selected_phases: selectedPhases,
+  });
+
+export const updateLearningPhases = (topicId, isFullTrack, selectedPhases) =>
+  api.patch(`/api/learning/subscribe/${topicId}/phases`, {
+    is_full_track: isFullTrack,
+    selected_phases: selectedPhases,
+  });
 
 // ── Learning Engine (admin) ───────────────────────────────────────────────────
 

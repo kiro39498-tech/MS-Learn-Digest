@@ -140,14 +140,34 @@ class LearningRepository:
         return deleted > 0
 
     def advance_module(self, sub: UserLearningSubscription) -> None:
-        """Move to next module; mark completed if last module reached."""
-        topic = self.get_topic_by_id(sub.topic_id)
-        next_seq = sub.current_module_sequence + 1
-        if topic and next_seq > topic.total_modules:
+        """
+        Move to next module in the user's active module list.
+        Phase-aware: skips modules outside selected phases for custom tracks.
+        Marks completed when no more modules remain.
+        """
+        active_modules = self.get_modules_for_subscription(sub)
+        current_seqs = [m.sequence_number for m in active_modules]
+
+        if not current_seqs:
+            sub.status = "completed"
+            sub.completed_at = datetime.now(timezone.utc)
+            sub.last_sent_at = datetime.now(timezone.utc)
+            self.db.commit()
+            return
+
+        current_idx = None
+        for i, seq in enumerate(current_seqs):
+            if seq == sub.current_module_sequence:
+                current_idx = i
+                break
+
+        if current_idx is None or current_idx + 1 >= len(current_seqs):
+            # No next module — completed
             sub.status = "completed"
             sub.completed_at = datetime.now(timezone.utc)
         else:
-            sub.current_module_sequence = next_seq
+            sub.current_module_sequence = current_seqs[current_idx + 1]
+
         sub.last_sent_at = datetime.now(timezone.utc)
         self.db.commit()
 
@@ -247,3 +267,94 @@ class LearningRepository:
             "active_tracks": sum(1 for s in subs if s.status == "active"),
             "completed_tracks": sum(1 for s in subs if s.status == "completed"),
         }
+
+    # ── Phase subscriptions ───────────────────────────────────────────────
+
+    def create_phase_subscriptions(
+        self,
+        sub: UserLearningSubscription,
+        phase_names: list[str],
+    ) -> int:
+        """
+        Set the selected phases for a custom (non-full-track) subscription.
+        Replaces any existing phase selections for this subscription.
+        Returns count of phase rows inserted.
+        """
+        from app.models.learning import UserPhaseSubscription
+
+        # Delete existing phase selections for this subscription
+        self.db.query(UserPhaseSubscription).filter(
+            UserPhaseSubscription.subscription_id == sub.id
+        ).delete()
+
+        # Get unique phases with their phase_numbers from modules
+        phases = (
+            self.db.query(LearningModule.phase_name, LearningModule.phase_number)
+            .filter(
+                LearningModule.topic_id == sub.topic_id,
+                LearningModule.phase_name.in_(phase_names),
+                LearningModule.is_active == True,  # noqa: E712
+            )
+            .distinct()
+            .all()
+        )
+
+        inserted = 0
+        for phase_name, phase_number in phases:
+            import uuid as _uuid
+            row = UserPhaseSubscription(
+                id=_uuid.uuid4(),
+                user_id=sub.user_id,
+                subscription_id=sub.id,
+                topic_id=sub.topic_id,
+                phase_name=phase_name,
+                phase_number=phase_number,
+                is_active=True,
+            )
+            self.db.add(row)
+            inserted += 1
+
+        self.db.commit()
+        return inserted
+
+    def get_subscribed_phases(self, sub: UserLearningSubscription) -> list[str]:
+        """
+        Return the list of selected phase names for a custom subscription.
+        Returns [] if is_full_track = True (all phases active).
+        """
+        if sub.is_full_track:
+            return []
+
+        from app.models.learning import UserPhaseSubscription
+        rows = (
+            self.db.query(UserPhaseSubscription.phase_name)
+            .filter(
+                UserPhaseSubscription.subscription_id == sub.id,
+                UserPhaseSubscription.is_active == True,  # noqa: E712
+            )
+            .order_by(UserPhaseSubscription.phase_number)
+            .all()
+        )
+        return [r.phase_name for r in rows]
+
+    def get_modules_for_subscription(self, sub: UserLearningSubscription) -> list[LearningModule]:
+        """
+        Return the ordered list of modules the user will receive.
+
+        Full-track: all active modules in sequence order.
+        Custom phases: only modules belonging to selected phases, in sequence order.
+        """
+        query = (
+            self.db.query(LearningModule)
+            .filter(
+                LearningModule.topic_id == sub.topic_id,
+                LearningModule.is_active == True,  # noqa: E712
+            )
+        )
+
+        if not sub.is_full_track:
+            selected_phases = self.get_subscribed_phases(sub)
+            if selected_phases:
+                query = query.filter(LearningModule.phase_name.in_(selected_phases))
+
+        return query.order_by(LearningModule.sequence_number).all()

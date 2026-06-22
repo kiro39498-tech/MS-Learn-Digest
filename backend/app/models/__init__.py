@@ -12,4 +12,6 @@ from app.models.digest import Digest, DigestItem
 from app.models.learning import (
     LearningTopic, LearningModule, UserLearningSubscription,
     GeneratedLesson, LearningAnalytics, LearningWeeklyReview,
+    UserPhaseSubscription,
 )
+from app.models.auth import EmailLoginToken

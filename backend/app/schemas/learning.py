@@ -86,9 +86,11 @@ class LearningProgressResponse(BaseModel):
     completed_at: Optional[datetime] = None
     modules_completed: int
     modules_remaining: int
-    # Current phase info
     current_phase_name: Optional[str] = None
     current_phase_number: int = 1
+    # Phase selection fields
+    is_full_track: bool = True
+    selected_phases: List[str] = []
 
 
 class LearningAnalyticsResponse(BaseModel):

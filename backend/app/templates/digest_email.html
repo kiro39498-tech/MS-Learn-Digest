@@ -1,186 +1,346 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <!--[if !mso]><!-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <!--<![endif]-->
   <title>{{ digest_title }}</title>
-  <style>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style type="text/css">
+    /* ── Reset ── */
     body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
-    body{margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;}
-    .wrapper{max-width:640px;margin:0 auto;padding:24px 16px;}
+    table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
+    img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none;}
+    body{margin:0;padding:0;width:100% !important;min-width:100%;}
+    *{box-sizing:border-box;}
 
-    /* Header */
-    .header{background:linear-gradient(135deg,#0078d4 0%,#005a9e 100%);border-radius:12px 12px 0 0;padding:32px 32px 24px;text-align:center;}
-    .header-logo{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:10px;}
-    .header h1{margin:0;font-size:24px;font-weight:700;color:#fff;line-height:1.3;}
-    .header-meta{margin-top:8px;font-size:13px;color:rgba(255,255,255,.7);}
-    .pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:500;margin:2px 3px;}
+    /* ── Outer shell ── */
+    .email-bg{background-color:#f0f4f8;padding:20px 0 32px;}
+    .email-wrapper{max-width:680px;margin:0 auto;}
 
-    /* Stats bar */
-    .stats-bar{background:#fff;border-bottom:1px solid #e5e7eb;display:flex;}
-    .stat-cell{flex:1;text-align:center;padding:14px 8px;}
-    .stat-cell+.stat-cell{border-left:1px solid #e5e7eb;}
-    .stat-num{font-size:22px;font-weight:700;color:#0078d4;}
-    .stat-label{font-size:11px;color:#6b7280;margin-top:2px;}
+    /* ── Header ── */
+    .hdr{background:linear-gradient(135deg,#0078d4 0%,#004e8c 100%);border-radius:12px 12px 0 0;}
+    .hdr-inner{padding:28px 36px 24px;}
+    .hdr-eyebrow{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.6);margin:0 0 10px;}
+    .hdr-title{font-family:'Segoe UI',Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;margin:0 0 8px;line-height:1.25;}
+    .hdr-meta{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:rgba(255,255,255,.65);margin:0 0 14px;}
+    .pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:3px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;margin:2px 3px 2px 0;}
 
-    /* Body */
-    .body{background:#fff;padding:28px 32px;border-radius:0 0 12px 12px;}
-    .greeting{font-size:15px;color:#374151;line-height:1.6;margin:0 0 20px;}
+    /* ── Stats bar ── */
+    .stats-wrap{background:#ffffff;border-bottom:2px solid #e8edf2;}
+    .stat-cell{text-align:center;padding:14px 16px;border-right:1px solid #e8edf2;}
+    .stat-cell-last{text-align:center;padding:14px 16px;}
+    .stat-num{font-family:'Segoe UI',Arial,sans-serif;font-size:24px;font-weight:700;color:#0078d4;line-height:1;}
+    .stat-lbl{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8896a5;margin-top:4px;}
 
-    /* Executive summary */
-    .exec-summary{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:24px;}
-    .exec-summary-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#0078d4;margin-bottom:6px;}
-    .exec-summary-text{font-size:14px;color:#1e3a5f;line-height:1.6;margin:0;}
+    /* ── Body shell ── */
+    .body-wrap{background:#ffffff;padding:28px 36px 32px;border-radius:0 0 12px 12px;}
 
-    /* Section heading */
-    .section-heading{font-size:17px;font-weight:700;color:#0078d4;border-bottom:2px solid #e5e7eb;padding-bottom:9px;margin:0 0 18px;display:flex;align-items:center;justify-content:space-between;}
-    .section-count{font-size:12px;font-weight:500;color:#9ca3af;}
+    /* ── Greeting ── */
+    .greeting{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;margin:0 0 22px;}
 
-    /* Item card */
-    .item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:14px;}
-    .item:last-child{margin-bottom:0;}
-    .item-title{font-size:15px;font-weight:700;color:#0078d4;text-decoration:none;line-height:1.4;display:block;margin-bottom:10px;}
-    .item-title:hover{text-decoration:underline;}
-    .badges{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:5px;}
-    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+    /* ── Section label ── */
+    .section-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0078d4;margin:0 0 6px;}
+    .section-title{font-family:'Segoe UI',Arial,sans-serif;font-size:17px;font-weight:700;color:#18181b;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #e8edf2;}
+    .section-title-count{float:right;font-size:12px;font-weight:500;color:#94a3b8;margin-top:3px;}
+
+    /* ── Executive summary box ── */
+    .exec-box{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 28px;}
+    .exec-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#0078d4;margin:0 0 6px;}
+    .exec-text{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#1e3a5f;line-height:1.65;margin:0;}
+
+    /* ── Item cards ── */
+    .item-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+    .item-card-last{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:0;}
+    .item-title-link{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;color:#0078d4;text-decoration:none;line-height:1.4;display:block;margin-bottom:10px;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;white-space:nowrap;}
     .b-module{background:#eff6ff;color:#1e40af;}
-    .b-path{background:#faf5ff;color:#7c3aed;}
-    .b-dur{background:#f3f4f6;color:#6b7280;}
-    .summary{font-size:13px;line-height:1.6;color:#4b5563;margin:0 0 11px;}
-    .wim{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 6px 6px 0;padding:11px 13px;margin-bottom:11px;}
-    .wim-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0078d4;margin-bottom:3px;}
-    .wim-text{font-size:13px;color:#374151;line-height:1.5;margin:0;}
-    .kt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:5px;}
-    .kt{margin:0 0 11px;padding-left:17px;}
-    .kt li{font-size:13px;color:#374151;line-height:1.5;margin-bottom:3px;}
-    .cta{display:inline-block;background:#0078d4;color:#fff;text-decoration:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;}
+    .b-path{background:#f5f3ff;color:#7c3aed;}
+    .b-dur{background:#f1f5f9;color:#64748b;}
+    .item-summary{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;color:#475569;margin:0 0 12px;}
+    .wim-box{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 12px;}
+    .wim-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#0078d4;margin:0 0 4px;}
+    .wim-text{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#334155;line-height:1.55;margin:0;}
+    .kt-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin:0 0 6px;}
+    .kt-item{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#334155;line-height:1.55;padding:2px 0 2px 16px;position:relative;}
+    .cta-btn{display:inline-block;background:#0078d4;color:#ffffff;text-decoration:none;padding:9px 20px;border-radius:6px;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:.2px;}
 
-    .divider{border:none;border-top:1px solid #e5e7eb;margin:24px 0;}
-    .footer{text-align:center;padding:20px 16px 0;font-size:12px;color:#9ca3af;line-height:1.8;}
-    .footer a{color:#6b7280;text-decoration:underline;}
+    /* ── Highlights section ── */
+    .highlight-card{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+    .highlight-card-last{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:0;}
+    .highlight-dot{font-size:14px;line-height:1;}
+    .highlight-text{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#15803d;line-height:1.55;font-weight:600;}
+    .highlight-sub{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#166534;margin:3px 0 0;}
 
-    @media(max-width:480px){
-      .body{padding:18px 14px;}
-      .header{padding:22px 14px 18px;}
-      .header h1{font-size:19px;}
-      .stats-bar{flex-direction:column;}
-      .stat-cell+.stat-cell{border-left:none;border-top:1px solid #e5e7eb;}
+    /* ── Resources section ── */
+    .resource-row{padding:10px 0;border-bottom:1px solid #f1f5f9;}
+    .resource-row-last{padding:10px 0;}
+    .resource-icon{font-size:14px;width:22px;}
+    .resource-link{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#0078d4;text-decoration:none;font-weight:600;}
+    .resource-type{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-left:6px;}
+
+    /* ── Divider ── */
+    .divider{border:none;border-top:2px solid #e8edf2;margin:28px 0;}
+    .divider-sm{border:none;border-top:1px solid #e8edf2;margin:12px 0;}
+
+    /* ── Footer ── */
+    .footer{text-align:center;padding:20px 36px 0;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#94a3b8;line-height:1.8;}
+    .footer a{color:#64748b;text-decoration:underline;}
+    .footer strong{color:#64748b;}
+
+    /* ── Responsive ── */
+    @media screen and (max-width:620px){
+      .email-wrapper{width:100% !important;}
+      .hdr-inner,.body-wrap{padding-left:18px !important;padding-right:18px !important;}
+      .hdr-title{font-size:21px !important;}
+      .stat-cell,.stat-cell-last{padding:10px 8px !important;}
+      .stat-num{font-size:18px !important;}
+      .item-card,.item-card-last{padding:14px 14px !important;}
+      .mobile-stack{display:block !important;width:100% !important;}
+      .mobile-hide{display:none !important;}
+      .footer{padding-left:16px !important;padding-right:16px !important;}
+    }
+
+    @media screen and (min-width:621px){
+      .desktop-show{display:table-cell !important;}
     }
   </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="email-bg">
+<div class="email-wrapper">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-logo">📚 MS Learn Digest</div>
-    <h1>{{ digest_title }}</h1>
-    <div class="header-meta">Generated {{ generated_at }}</div>
-    {% if topic_names %}
-    <div style="margin-top:14px;">
-      {% for t in topic_names %}<span class="pill">{{ t }}</span>{% endfor %}
-    </div>
-    {% endif %}
-  </div>
+  <!--[if mso]><table width="680" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 
-  <!-- Stats bar -->
-  <div class="stats-bar">
-    <div class="stat-cell">
-      <div class="stat-num">{{ item_count }}</div>
-      <div class="stat-label">Updates</div>
-    </div>
-    <div class="stat-cell">
-      <div class="stat-num">{{ topic_names|length }}</div>
-      <div class="stat-label">Topics</div>
-    </div>
-    <div class="stat-cell">
-      <div class="stat-num" style="font-size:14px;padding-top:4px;">
-        {% if freq == 'daily' %}24h{% elif freq == 'weekly' %}7d{% elif freq == 'biweekly' %}14d{% else %}30d{% endif %}
-      </div>
-      <div class="stat-label">Window</div>
-    </div>
-  </div>
+  <!-- ══════════════════════════════════════
+       HEADER
+  ══════════════════════════════════════ -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+    <tr>
+      <td class="hdr">
+        <div class="hdr-inner">
+          <p class="hdr-eyebrow">📚 MS Learn Digest</p>
+          <h1 class="hdr-title">{{ digest_title }}</h1>
+          <p class="hdr-meta">Generated {{ generated_at }}</p>
+          {% if topic_names %}
+          <div>
+            {% for t in topic_names %}<span class="pill">{{ t }}</span>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+  </table>
 
-  <!-- Body -->
-  <div class="body">
-    <p class="greeting">
-      Hi {{ user_name }},<br>
-      Here are your Microsoft Learn updates for
-      {% if freq == 'daily' %}the last 24 hours
-      {% elif freq == 'weekly' %}the last 7 days
-      {% elif freq == 'biweekly' %}the last 14 days
-      {% else %}the last 30 days{% endif %}.
-    </p>
+  <!-- ══════════════════════════════════════
+       STATS BAR
+  ══════════════════════════════════════ -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" class="stats-wrap">
+    <tr>
+      <td class="stat-cell" width="34%">
+        <div class="stat-num">{{ item_count }}</div>
+        <div class="stat-lbl">Updates</div>
+      </td>
+      <td class="stat-cell" width="33%">
+        <div class="stat-num">{{ topic_names|length }}</div>
+        <div class="stat-lbl">Topics</div>
+      </td>
+      <td class="stat-cell-last" width="33%">
+        <div class="stat-num" style="font-size:16px;padding-top:5px;">
+          {% if freq == 'daily' %}24 h
+          {% elif freq == 'weekly' %}7 d
+          {% elif freq == 'biweekly' %}14 d
+          {% else %}30 d{% endif %}
+        </div>
+        <div class="stat-lbl">Window</div>
+      </td>
+    </tr>
+  </table>
 
-    {% if executive_summary %}
-    <div class="exec-summary">
-      <div class="exec-summary-label">Executive Summary</div>
-      <p class="exec-summary-text">{{ executive_summary }}</p>
-    </div>
-    {% endif %}
+  <!-- ══════════════════════════════════════
+       BODY
+  ══════════════════════════════════════ -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+    <tr>
+      <td class="body-wrap">
 
-    <!-- Single section: Microsoft Learn Updates -->
-    {% if items %}
-    <div class="section-heading">
-      <span>📘 Microsoft Learn Updates</span>
-      <span class="section-count">{{ items|length }} item{% if items|length != 1 %}s{% endif %}</span>
-    </div>
+        <!-- Greeting -->
+        <p class="greeting">
+          Hi {{ user_name }},<br>
+          Here are your personalised Microsoft Learn updates for
+          {% if freq == 'daily' %}the last 24 hours
+          {% elif freq == 'weekly' %}the last 7 days
+          {% elif freq == 'biweekly' %}the last 14 days
+          {% else %}the last 30 days{% endif %}.
+          There {% if item_count == 1 %}is <strong>1 new item</strong>{% else %}are <strong>{{ item_count }} new items</strong>{% endif %} across your subscribed topics.
+        </p>
 
-    {% for item in items %}
-    <div class="item">
-      <a href="{{ item.url }}" class="item-title">{{ item.title }}</a>
-
-      <div class="badges">
-        {% if item.content_type %}
-        <span class="badge {{ 'b-path' if item.content_type == 'learningPath' else 'b-module' }}">
-          {{ 'Learning Path' if item.content_type == 'learningPath' else 'Module' }}
-        </span>
+        <!-- ── 1. Executive Summary ── -->
+        {% if executive_summary %}
+        <p class="section-label">📋 Executive Summary</p>
+        <div class="exec-box">
+          <p class="exec-label">This week's overview</p>
+          <p class="exec-text">{{ executive_summary }}</p>
+        </div>
         {% endif %}
-        {% if item.duration_minutes and item.duration_minutes > 0 %}
-        <span class="badge b-dur">⏱ {{ item.duration_minutes }} min</span>
+
+        <!-- ── 2. Learning Content ── -->
+        {% if items %}
+        <p class="section-label">📘 Learning Content</p>
+        <p class="section-title">
+          <span class="section-title-count">{{ items|length }} item{% if items|length != 1 %}s{% endif %}</span>
+          Microsoft Learn Updates
+        </p>
+
+        {% for item in items %}
+        <div class="{{ 'item-card-last' if loop.last else 'item-card' }}">
+
+          <!-- Title -->
+          <a href="{{ item.url }}" class="item-title-link">{{ item.title }}</a>
+
+          <!-- Badges row -->
+          <div style="margin-bottom:10px;">
+            {% if item.content_type %}
+            <span class="badge {{ 'b-path' if item.content_type == 'learningPath' else 'b-module' }}">
+              {{ '📗 Learning Path' if item.content_type == 'learningPath' else '📄 Module' }}
+            </span>
+            {% endif %}
+            {% if item.duration_minutes and item.duration_minutes > 0 %}
+            <span class="badge b-dur">⏱ {{ item.duration_minutes }} min</span>
+            {% endif %}
+          </div>
+
+          <!-- Summary -->
+          {% if item.newsletter_summary %}
+          <p class="item-summary">{{ item.newsletter_summary }}</p>
+          {% endif %}
+
+          <!-- Why it matters -->
+          {% if item.why_it_matters %}
+          <div class="wim-box">
+            <p class="wim-label">Why it matters</p>
+            <p class="wim-text">{{ item.why_it_matters }}</p>
+          </div>
+          {% endif %}
+
+          <!-- Key takeaways -->
+          {% if item.key_takeaways and item.key_takeaways|length > 0 %}
+          <p class="kt-label">Key Takeaways</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+            {% for kt in item.key_takeaways %}
+            <tr>
+              <td style="width:16px;vertical-align:top;padding-top:1px;font-size:13px;color:#0078d4;">›</td>
+              <td class="kt-item">{{ kt }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% endif %}
+
+          <!-- CTA -->
+          <a href="{{ item.url }}" class="cta-btn">Read on Microsoft Learn →</a>
+
+        </div>
+        {% endfor %}
         {% endif %}
-      </div>
 
-      {% if item.newsletter_summary %}
-      <p class="summary">{{ item.newsletter_summary }}</p>
-      {% endif %}
+        <!-- ── 3. Key Highlights ── -->
+        {% if items and items|length > 0 %}
+        <hr class="divider">
+        <p class="section-label">✨ Key Highlights</p>
+        <p class="section-title">Recommended This Week</p>
 
-      {% if item.why_it_matters %}
-      <div class="wim">
-        <div class="wim-label">Why it matters</div>
-        <p class="wim-text">{{ item.why_it_matters }}</p>
-      </div>
-      {% endif %}
+        {% for item in items[:3] %}
+        <div class="{{ 'highlight-card-last' if loop.last or loop.index >= 3 else 'highlight-card' }}">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="width:24px;vertical-align:top;padding-top:2px;" class="highlight-dot">
+                {{ '🏆' if loop.index == 1 else ('⭐' if loop.index == 2 else '💡') }}
+              </td>
+              <td>
+                <p class="highlight-text"><a href="{{ item.url }}" style="color:#15803d;text-decoration:none;">{{ item.title }}</a></p>
+                {% if item.why_it_matters %}
+                <p class="highlight-sub">{{ item.why_it_matters[:120] }}{% if item.why_it_matters|length > 120 %}…{% endif %}</p>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+        {% if not loop.last and loop.index < 3 %}
+        <hr class="divider-sm">
+        {% endif %}
+        {% endfor %}
+        {% endif %}
 
-      {% if item.key_takeaways and item.key_takeaways|length > 0 %}
-      <div class="kt-label">Key Takeaways</div>
-      <ul class="kt">
-        {% for kt in item.key_takeaways %}<li>{{ kt }}</li>{% endfor %}
-      </ul>
-      {% endif %}
+        <!-- ── 4. Resources ── -->
+        {% if items %}
+        <hr class="divider">
+        <p class="section-label">🔗 Resources</p>
+        <p class="section-title">All Links This Issue</p>
 
-      <a href="{{ item.url }}" class="cta">Read on Microsoft Learn →</a>
-    </div>
-    {% endfor %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          {% for item in items %}
+          <tr>
+            <td class="{{ 'resource-row-last' if loop.last else 'resource-row' }}">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="width:22px;vertical-align:top;" class="resource-icon">
+                    {{ '📗' if item.content_type == 'learningPath' else '📄' }}
+                  </td>
+                  <td>
+                    <a href="{{ item.url }}" class="resource-link">{{ item.title }}</a>
+                    <span class="resource-type">{{ 'path' if item.content_type == 'learningPath' else 'module' }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% endif %}
 
-    {% endif %}
+        <!-- Closing line -->
+        <hr class="divider">
+        <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#94a3b8;text-align:center;margin:0;">
+          Keep learning. See you next time. 🚀
+        </p>
 
-    <hr class="divider">
-    <p style="font-size:13px;color:#6b7280;text-align:center;margin:0;">
-      Keep learning. See you next time.
-    </p>
-  </div>
+      </td>
+    </tr>
+  </table>
 
-  <!-- Footer -->
+  <!-- ══════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════ -->
   <div class="footer">
     <p>Sent by <strong>MS Learn Digest</strong> — Your Microsoft Learn intelligence platform.</p>
     <p>
       <a href="{{ frontend_url }}/preferences">Manage Preferences</a>
-      &middot;
+      &nbsp;·&nbsp;
       <a href="{{ frontend_url }}/history">View All Digests</a>
+      &nbsp;·&nbsp;
+      <a href="{{ frontend_url }}/unsubscribe">Unsubscribe</a>
+    </p>
+    <p style="color:#cbd5e1;font-size:11px;margin-top:8px;">
+      © 2026 MS Learn Digest. You received this because you subscribed at
+      <a href="{{ frontend_url }}" style="color:#cbd5e1;">{{ frontend_url }}</a>.
     </p>
   </div>
 
+  <!--[if mso]></td></tr></table><![endif]-->
+
+</div>
 </div>
 </body>
 </html>

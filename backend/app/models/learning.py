@@ -120,10 +120,18 @@ class UserLearningSubscription(Base):
     total_lessons_sent = Column(Integer, nullable=False, default=0)
     total_quiz_questions = Column(Integer, nullable=False, default=0)
 
+    # Phase selection (migration h8i9j0k1l2m3)
+    is_full_track = Column(Boolean, nullable=False, default=True)
+
     user = relationship("User")
     topic = relationship("LearningTopic", back_populates="subscriptions")
     analytics = relationship(
         "LearningAnalytics",
+        back_populates="subscription",
+        cascade="all, delete-orphan",
+    )
+    phase_subscriptions = relationship(
+        "UserPhaseSubscription",
         back_populates="subscription",
         cascade="all, delete-orphan",
     )
@@ -205,3 +213,39 @@ class LearningWeeklyReview(Base):
     content_json = Column(JSONB, nullable=True)
     sent_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=func.now())
+
+
+class UserPhaseSubscription(Base):
+    """
+    Records which specific phases a user has chosen within a track.
+    Only populated when UserLearningSubscription.is_full_track = False.
+
+    When is_full_track = True, this table has no rows for that subscription
+    and the learning engine delivers all phases in sequence.
+    """
+    __tablename__ = "user_phase_subscriptions"
+    __table_args__ = (
+        UniqueConstraint("subscription_id", "phase_name", name="uq_phase_sub_phase"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    subscription_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("user_learning_subscriptions.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    topic_id = Column(
+        UUID(as_uuid=True), ForeignKey("learning_topics.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    phase_name = Column(String(200), nullable=False)
+    phase_number = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    subscription = relationship("UserLearningSubscription",
+                                back_populates="phase_subscriptions")

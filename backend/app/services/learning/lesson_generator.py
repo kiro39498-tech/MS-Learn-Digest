@@ -134,7 +134,7 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
     "expected_outcome": "Specific, measurable outcome",
     "challenge_extension": "Optional harder challenge for advanced learners"
   }},
-  "interview_questions": {{
+  "questions": {{
     "beginner": [
       {{"question": "...", "model_answer": "..."}}
     ],
