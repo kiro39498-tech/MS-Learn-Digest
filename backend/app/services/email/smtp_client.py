@@ -99,6 +99,8 @@ class EmailClient:
     def send_email(self, recipient: str, subject: str, html_body: str) -> bool:
         """
         Send a single HTML email. Returns True on success, False on failure.
+        Uses quoted-printable encoding on the HTML body to handle large templates
+        and stay within SMTP line-length limits.
         """
         ts = datetime.now(timezone.utc).isoformat()
 
@@ -111,16 +113,28 @@ class EmailClient:
         message["From"] = f"{settings.APP_NAME} <{self.sender}>"
         message["To"] = recipient
 
-        message.attach(MIMEText(html_body, "html"))
+        # Use quoted-printable encoding so large HTML bodies (20-50 KB) don't
+        # exceed SMTP 998-char line limits and are accepted by Gmail / Outlook.
+        html_part = MIMEText(html_body, "html", "utf-8")
+        html_part.replace_header("Content-Transfer-Encoding", "quoted-printable")
+        from quopri import encodestring as _qp_encode
+        html_part.set_payload(
+            _qp_encode(html_body.encode("utf-8")).decode("ascii"),
+            charset=None,
+        )
+        message.attach(html_part)
 
-        logger.info(f"[{ts}] EMAIL_SEND | START | to={recipient} subject={subject!r}")
+        logger.info(
+            f"[{ts}] EMAIL_SEND | START | to={recipient} "
+            f"subject={subject!r} html_bytes={len(html_body.encode('utf-8')):,}"
+        )
 
         try:
-            with smtplib.SMTP(self.server, self.port, timeout=15) as conn:
+            with smtplib.SMTP(self.server, self.port, timeout=30) as conn:
                 conn.ehlo()
                 conn.starttls()
                 conn.login(self.username, self.password)
-                conn.sendmail(self.sender, recipient, message.as_string())
+                conn.sendmail(self.sender, recipient, message.as_bytes())
 
             logger.info(f"[{ts}] EMAIL_SEND | SUCCESS | to={recipient}")
             return True
@@ -137,7 +151,14 @@ class EmailClient:
             return False
 
         except smtplib.SMTPDataError as exc:
-            logger.error(f"[{ts}] EMAIL_SEND | DATA_ERROR | to={recipient} | {exc}")
+            logger.error(
+                f"[{ts}] EMAIL_SEND | DATA_ERROR | to={recipient} | "
+                f"code={exc.smtp_code} msg={exc.smtp_error!r}"
+            )
+            return False
+
+        except smtplib.SMTPServerDisconnected as exc:
+            logger.error(f"[{ts}] EMAIL_SEND | DISCONNECTED | to={recipient} | {exc}")
             return False
 
         except Exception as exc:
@@ -163,16 +184,27 @@ class EmailClient:
         message["Subject"] = subject
         message["From"] = f"{settings.APP_NAME} <{self.sender}>"
         message["To"] = recipient
-        message.attach(MIMEText(html_body, "html"))
 
-        logger.info(f"[{ts}] EMAIL_SEND | START | to={recipient} subject={subject!r}")
+        html_part = MIMEText(html_body, "html", "utf-8")
+        html_part.replace_header("Content-Transfer-Encoding", "quoted-printable")
+        from quopri import encodestring as _qp_encode
+        html_part.set_payload(
+            _qp_encode(html_body.encode("utf-8")).decode("ascii"),
+            charset=None,
+        )
+        message.attach(html_part)
+
+        logger.info(
+            f"[{ts}] EMAIL_SEND | START | to={recipient} "
+            f"subject={subject!r} html_bytes={len(html_body.encode('utf-8')):,}"
+        )
 
         try:
-            with smtplib.SMTP(self.server, self.port, timeout=15) as conn:
+            with smtplib.SMTP(self.server, self.port, timeout=30) as conn:
                 conn.ehlo()
                 conn.starttls()
                 conn.login(self.username, self.password)
-                conn.sendmail(self.sender, recipient, message.as_string())
+                conn.sendmail(self.sender, recipient, message.as_bytes())
 
             logger.info(f"[{ts}] EMAIL_SEND | SUCCESS | to={recipient}")
             return SMTPResult(True, f"Email delivered to {recipient}.", f"sent_at={ts}")
@@ -188,6 +220,14 @@ class EmailClient:
         except smtplib.SMTPRecipientsRefused as exc:
             logger.error(f"[{ts}] EMAIL_SEND | RECIPIENT_REFUSED | {exc}")
             return SMTPResult(False, f"Recipient refused: {recipient}", str(exc))
+
+        except smtplib.SMTPDataError as exc:
+            logger.error(f"[{ts}] EMAIL_SEND | DATA_ERROR | code={exc.smtp_code} msg={exc.smtp_error!r}")
+            return SMTPResult(False, f"SMTP data error (code {exc.smtp_code})", repr(exc.smtp_error))
+
+        except smtplib.SMTPServerDisconnected as exc:
+            logger.error(f"[{ts}] EMAIL_SEND | DISCONNECTED | {exc}")
+            return SMTPResult(False, "Server disconnected unexpectedly.", str(exc))
 
         except Exception as exc:
             logger.error(f"[{ts}] EMAIL_SEND | ERROR | {type(exc).__name__}: {exc}")

@@ -208,6 +208,10 @@ class LearningNewsletterGenerator:
                 troubleshooting_tips=content_json.get("troubleshooting_tips", []),
                 best_practices=content_json.get("best_practices", []),
                 summary=content_json.get("summary", []),
+                # Interview questions and quiz — extracted explicitly so the
+                # template receives them as named variables, not buried in content_json
+                questions=content_json.get("questions") or {},
+                quiz=content_json.get("quiz") or [],
                 next_lesson_preview=content_json.get("next_lesson_preview", ""),
                 further_reading=content_json.get("further_reading", []),
                 resource_links=resource_links,

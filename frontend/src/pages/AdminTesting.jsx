@@ -3,14 +3,14 @@ import {
   Mail, Send, FileText, Eye, Settings, CheckCircle2, XCircle,
   Loader2, AlertTriangle, ExternalLink, Bug, RefreshCw, Database,
   Users, UserPlus, Copy, Play, ChevronDown, ChevronUp, RotateCcw,
-  GraduationCap, BookOpen,
+  GraduationCap, BookOpen, Trash2,
 } from 'lucide-react';
 import {
   adminGetConfig, adminSmtpCheck, adminSendTestEmail,
   adminGenerateTestDigest, adminSendTestDigest, adminPreviewDigest,
   adminDebugOnboarding, adminCatalogSync, adminCatalogCacheStats,
   adminSendMyDigest, adminRepairTopics,
-  adminLearningStatus, adminSendLearningLesson,
+  adminLearningStatus, adminSendLearningLesson, adminClearLessonCache,
   adminTeamCreate, adminTeamInvite, adminTeamAcceptInvite,
   adminTeamRejectInvite, adminTeamSendDigest, adminTeamDeliveryStatus,
 } from '../services/api';
@@ -146,10 +146,19 @@ function TopicRepairCard() {
 // ── Learning Engine Section ────────────────────────────────────────────────────
 
 function LearningEngineSection() {
-  const [status, setStatus] = useState(null);
-  const [statusSt, setStatusSt] = useState(S.idle);
-  const [sendSt, setSendSt] = useState(S.idle);
-  const [sendData, setSendData] = useState(null);
+  const [status, setStatus]       = useState(null);
+  const [statusSt, setStatusSt]   = useState(S.idle);
+  const [sendSt, setSendSt]       = useState(S.idle);
+  const [sendData, setSendData]   = useState(null);
+
+  // Cache-clear state
+  const [clearSt, setClearSt]       = useState(S.idle);
+  const [clearData, setClearData]   = useState(null);
+  // Scope inputs
+  const [clearSlug, setClearSlug]   = useState('');
+  const [clearSeq, setClearSeq]     = useState('');
+  // Confirm guard for "clear all"
+  const [confirmAll, setConfirmAll] = useState(false);
 
   const handleStatus = async () => {
     setStatusSt(S.loading);
@@ -176,14 +185,54 @@ function LearningEngineSection() {
     }
   };
 
+  const handleClearCache = async (scope) => {
+    setClearSt(S.loading);
+    setClearData(null);
+    setConfirmAll(false);
+    try {
+      const res = await adminClearLessonCache(scope);
+      setClearData(res.data);
+      setClearSt(S.success);
+      // Refresh status counts so "Cached Lessons" tile updates
+      if (statusSt === S.success) {
+        const s = await adminLearningStatus();
+        setStatus(s.data);
+      }
+    } catch (err) {
+      setClearData(err.response?.data || { message: err.message });
+      setClearSt(S.error);
+    }
+  };
+
+  // Derive what scope the clear button will use based on current inputs
+  const clearScope = () => {
+    if (clearSlug.trim() && clearSeq.trim() && !isNaN(Number(clearSeq))) {
+      return { topic_slug: clearSlug.trim(), module_sequence: Number(clearSeq) };
+    }
+    if (clearSlug.trim()) {
+      return { topic_slug: clearSlug.trim() };
+    }
+    return {};
+  };
+
+  const scopeLabel = () => {
+    const s = clearScope();
+    if (s.module_sequence != null) return `Module ${s.module_sequence} in "${s.topic_slug}"`;
+    if (s.topic_slug) return `All modules in "${s.topic_slug}"`;
+    return 'ALL cached lessons';
+  };
+
+  const isAllScope = Object.keys(clearScope()).length === 0;
+
   return (
     <SectionCard icon={GraduationCap} title="Learning Engine" color="purple" collapsible>
       <p className="text-sm text-gray-600 mb-4">
         Test the Structured Learning Tracks engine independently from the digest system.
-        Check curriculum status and trigger immediate lesson delivery for your active tracks.
+        Check curriculum status, clear the lesson cache after prompt changes, and
+        trigger immediate lesson delivery for your active tracks.
       </p>
 
-      {/* Status check */}
+      {/* ── Engine Status ── */}
       <div className="border rounded-xl p-4 bg-white mb-3">
         <h3 className="font-semibold text-sm text-ms-dark mb-3">Engine Status</h3>
         <button
@@ -201,10 +250,10 @@ function LearningEngineSection() {
           <div className="mt-3 space-y-3">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Topics',      val: status.topics,                     warn: !status.topics },
-                { label: 'Modules',     val: status.modules,                    warn: !status.modules },
-                { label: 'Active Subs', val: status.active_subscriptions,       warn: false },
-                { label: 'Cached Lessons', val: status.generated_lessons_cached, warn: false },
+                { label: 'Topics',           val: status.topics,                    warn: !status.topics },
+                { label: 'Modules',          val: status.modules,                   warn: !status.modules },
+                { label: 'Active Subs',      val: status.active_subscriptions,      warn: false },
+                { label: 'Cached Lessons',   val: status.generated_lessons_cached,  warn: false },
               ].map(({ label, val, warn }) => (
                 <div key={label} className="bg-gray-50 rounded-lg p-3 border">
                   <p className="text-xs text-gray-500">{label}</p>
@@ -222,10 +271,12 @@ function LearningEngineSection() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                   {status.topic_breakdown.map((t) => (
-                    <div key={t.slug} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                    <div key={t.slug}
+                      className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0"
+                    >
                       <span className="text-ms-dark font-medium">{t.name}</span>
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {t.modules} modules
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
+                        {t.slug} · {t.modules} modules
                       </span>
                     </div>
                   ))}
@@ -237,7 +288,137 @@ function LearningEngineSection() {
         {statusSt === S.error && <ResultCard status={statusSt} result={status} />}
       </div>
 
-      {/* Send lesson now */}
+      {/* ── Lesson Cache Management ── */}
+      <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50 mb-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Trash2 className="h-4 w-4 text-orange-700" />
+          <h3 className="font-semibold text-sm text-orange-900">Clear Lesson Cache</h3>
+        </div>
+        <p className="text-xs text-orange-700 mb-4 leading-relaxed">
+          Cached lessons are generated <strong>once per module</strong> and reused for all users.
+          After changing the lesson prompt, clear the cache so the next delivery regenerates
+          lessons with the new prompt. Clearing does <em>not</em> affect user progress or subscriptions.
+        </p>
+
+        {/* Scope inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="block text-xs font-medium text-orange-800 mb-1">
+              Topic Slug <span className="text-orange-500 font-normal">(leave blank to clear ALL)</span>
+            </label>
+            <input
+              className="input text-sm font-mono"
+              placeholder="e.g. azure-administrator"
+              value={clearSlug}
+              onChange={e => { setClearSlug(e.target.value); setConfirmAll(false); setClearData(null); }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-orange-800 mb-1">
+              Module Sequence # <span className="text-orange-500 font-normal">(optional — requires slug)</span>
+            </label>
+            <input
+              className="input text-sm font-mono"
+              placeholder="e.g. 31"
+              value={clearSeq}
+              onChange={e => { setClearSeq(e.target.value); setConfirmAll(false); setClearData(null); }}
+              disabled={!clearSlug.trim()}
+            />
+          </div>
+        </div>
+
+        {/* Scope preview pill */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-orange-700">Scope:</span>
+          <span className={clsx(
+            'text-xs font-semibold px-2.5 py-1 rounded-full border',
+            isAllScope
+              ? 'bg-red-100 text-red-700 border-red-300'
+              : 'bg-orange-100 text-orange-700 border-orange-300',
+          )}>
+            {scopeLabel()}
+          </span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* "Clear All" needs an extra confirm click */}
+          {isAllScope && !confirmAll ? (
+            <button
+              onClick={() => setConfirmAll(true)}
+              disabled={clearSt === S.loading}
+              className="flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear ALL Lessons
+            </button>
+          ) : isAllScope && confirmAll ? (
+            <>
+              <button
+                onClick={() => handleClearCache({})}
+                disabled={clearSt === S.loading}
+                className="flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-red-700 hover:bg-red-800 text-white transition-colors disabled:opacity-50 animate-pulse"
+              >
+                {clearSt === S.loading
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  : <Trash2 className="h-4 w-4 mr-2" />}
+                Confirm — Clear ALL
+              </button>
+              <button
+                onClick={() => setConfirmAll(false)}
+                className="flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handleClearCache(clearScope())}
+              disabled={clearSt === S.loading}
+              className="flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors disabled:opacity-50"
+            >
+              {clearSt === S.loading
+                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                : <Trash2 className="h-4 w-4 mr-2" />}
+              {clearSt === S.loading ? 'Clearing…' : 'Clear Cache'}
+            </button>
+          )}
+
+          {clearSt !== S.idle && (
+            <button
+              onClick={() => { setClearSt(S.idle); setClearData(null); setConfirmAll(false); }}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {/* Result */}
+        {clearSt === S.success && clearData && (
+          <div className="mt-3 p-3 bg-white border border-orange-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-green-800">{clearData.message}</p>
+                <div className="flex gap-3 mt-1.5 text-xs text-gray-500">
+                  <span>Scope: <strong className="text-ms-dark">{clearData.scope}</strong></span>
+                  <span>Deleted: <strong className="text-ms-dark">{clearData.deleted_count}</strong></span>
+                  {clearData.topic_name && (
+                    <span>Topic: <strong className="text-ms-dark">{clearData.topic_name}</strong></span>
+                  )}
+                  {clearData.module_title && (
+                    <span>Module: <strong className="text-ms-dark">{clearData.module_title}</strong></span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {clearSt === S.error && <ResultCard status={clearSt} result={clearData} />}
+      </div>
+
+      {/* ── Send lesson now ── */}
       <div className="border rounded-xl p-4 bg-white">
         <h3 className="font-semibold text-sm text-ms-dark mb-2">
           Send My Next Lesson Now
@@ -245,7 +426,10 @@ function LearningEngineSection() {
         <p className="text-xs text-gray-500 mb-3">
           Immediately delivers the next lesson email for all your active learning
           tracks. Go to <strong>Learning Center</strong> to subscribe to a track first.
-          Each track sends a separate email.
+          Each track sends a separate email.{' '}
+          <span className="text-orange-600 font-medium">
+            Clear the cache above first if you want to test the new prompt.
+          </span>
         </p>
         <button
           onClick={handleSendLesson}
@@ -266,32 +450,33 @@ function LearningEngineSection() {
 
         {sendSt === S.success && sendData && (
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm font-semibold text-green-800 mb-2">
-              ✅ {sendData.sent}/{sendData.total} lessons sent
-            </p>
-            {sendData.results && (
-              <div className="space-y-1">
-                {sendData.results.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-700">
-                      {r.topic} — Module {r.module}
-                    </span>
-                    <span className={clsx(
-                      'px-2 py-0.5 rounded-full font-medium',
-                      r.status === 'sent'   ? 'bg-green-100 text-green-700' :
-                      r.status === 'failed' ? 'bg-red-100 text-red-700' :
-                      'bg-yellow-100 text-yellow-700',
-                    )}>
-                      {r.status}
-                    </span>
+            {sendData.status === 'no_subscriptions' ? (
+              <p className="text-sm text-yellow-700">{sendData.message}</p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-green-800 mb-2">
+                  ✅ {sendData.sent}/{sendData.total} lesson{sendData.total !== 1 ? 's' : ''} sent
+                </p>
+                {sendData.results && (
+                  <div className="space-y-1">
+                    {sendData.results.map((r, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-700">
+                          {r.topic} — Module {r.module}
+                        </span>
+                        <span className={clsx(
+                          'px-2 py-0.5 rounded-full font-medium',
+                          r.status === 'sent'   ? 'bg-green-100 text-green-700' :
+                          r.status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-yellow-100 text-yellow-700',
+                        )}>
+                          {r.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-            {sendData.status === 'no_subscriptions' && (
-              <p className="text-sm text-yellow-700">
-                {sendData.message}
-              </p>
+                )}
+              </>
             )}
           </div>
         )}

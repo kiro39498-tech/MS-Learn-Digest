@@ -243,4 +243,13 @@ export const adminLearningStatus = () =>
 export const adminSendLearningLesson = () =>
   api.post('/api/admin/learning/send-lesson', null, { timeout: 120000 });
 
+// Clear the generated_lessons cache so the next delivery regenerates with the updated prompt.
+// scope options:
+//   {}                                          → clear ALL cached lessons
+//   { topic_slug: 'azure-administrator' }       → clear all lessons for one topic
+//   { topic_slug: 'azure-administrator',
+//     module_sequence: 31 }                     → clear one specific module
+export const adminClearLessonCache = (scope = {}) =>
+  api.delete('/api/admin/learning/lesson-cache', { data: scope });
+
 export default api;

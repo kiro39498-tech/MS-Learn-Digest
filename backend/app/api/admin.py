@@ -5,22 +5,25 @@ All endpoints require ADMIN_ENABLED=true (default in development).
 In production set ADMIN_ENABLED=false to disable them entirely.
 
 Endpoints:
-  GET  /api/admin/config
-  GET  /api/admin/smtp-check
-  POST /api/admin/send-test-email
-  POST /api/admin/generate-test-digest
-  POST /api/admin/send-test-digest
-  GET  /api/admin/preview-digest
-  POST /api/admin/catalog-sync
-  GET  /api/admin/catalog-cache/stats
-  POST /api/admin/catalog-cache/preview
-  POST /api/admin/test/send-my-digest
-  GET  /api/admin/debug/onboarding
-  POST /api/admin/teams/test-create
-  POST /api/admin/teams/{team_id}/test-invite
-  POST /api/admin/teams/invite/{token}/accept
-  POST /api/admin/teams/{team_id}/test-digest
-  GET  /api/admin/teams/{team_id}/delivery-status
+  GET    /api/admin/config
+  GET    /api/admin/smtp-check
+  POST   /api/admin/send-test-email
+  POST   /api/admin/generate-test-digest
+  POST   /api/admin/send-test-digest
+  GET    /api/admin/preview-digest
+  POST   /api/admin/catalog-sync
+  GET    /api/admin/catalog-cache/stats
+  POST   /api/admin/catalog-cache/preview
+  POST   /api/admin/test/send-my-digest
+  GET    /api/admin/debug/onboarding
+  POST   /api/admin/teams/test-create
+  POST   /api/admin/teams/{team_id}/test-invite
+  POST   /api/admin/teams/invite/{token}/accept
+  POST   /api/admin/teams/{team_id}/test-digest
+  GET    /api/admin/teams/{team_id}/delivery-status
+  GET    /api/admin/learning/status
+  POST   /api/admin/learning/send-lesson
+  DELETE /api/admin/learning/lesson-cache   ← clear generated_lessons cache (all / by topic / by module)
 """
 
 import logging
@@ -1007,3 +1010,151 @@ async def admin_send_learning_lesson(
         "total": len(results),
         "results": results,
     }
+
+
+# ── Learning lesson cache management ──────────────────────────────────────────
+
+class ClearLessonCacheRequest(BaseModel):
+    """
+    topic_slug   : clear all cached lessons for one learning topic slug.
+                   If omitted together with module_sequence, clears ALL lessons.
+    module_sequence : when provided alongside topic_slug, clears only the
+                   single module at that sequence number within the topic.
+    """
+    topic_slug: Optional[str] = None
+    module_sequence: Optional[int] = None
+
+
+@router.delete("/learning/lesson-cache")
+async def clear_lesson_cache(
+    payload: ClearLessonCacheRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Delete cached generated lessons so the next delivery regenerates them
+    with the current prompt.
+
+    Use cases:
+      - Clear ALL lessons after a prompt change:
+          DELETE /api/admin/learning/lesson-cache
+          body: {}
+
+      - Clear all lessons for one topic (e.g. "azure-administrator"):
+          body: {"topic_slug": "azure-administrator"}
+
+      - Clear a single module (topic + sequence number):
+          body: {"topic_slug": "azure-administrator", "module_sequence": 31}
+
+    After clearing, the next scheduled delivery (or POST /api/admin/learning/send-lesson)
+    will regenerate the lesson using the updated prompt.
+    """
+    _check_admin_enabled()
+    from app.models.learning import GeneratedLesson, LearningTopic, LearningModule
+    from sqlalchemy import text
+
+    deleted = 0
+
+    if payload.topic_slug and payload.module_sequence is not None:
+        # ── Delete one specific module ────────────────────────────────────
+        topic = (
+            db.query(LearningTopic)
+            .filter(LearningTopic.slug == payload.topic_slug)
+            .first()
+        )
+        if not topic:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Learning topic '{payload.topic_slug}' not found.",
+            )
+        module = (
+            db.query(LearningModule)
+            .filter(
+                LearningModule.topic_id == topic.id,
+                LearningModule.sequence_number == payload.module_sequence,
+            )
+            .first()
+        )
+        if not module:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Module sequence {payload.module_sequence} not found "
+                    f"in topic '{payload.topic_slug}'."
+                ),
+            )
+        deleted = (
+            db.query(GeneratedLesson)
+            .filter(GeneratedLesson.module_id == module.id)
+            .delete()
+        )
+        db.commit()
+        logger.info(
+            f"ADMIN | clear-lesson-cache | topic={payload.topic_slug} "
+            f"seq={payload.module_sequence} deleted={deleted}"
+        )
+        return {
+            "status": "cleared",
+            "scope": "single_module",
+            "topic_slug": payload.topic_slug,
+            "module_sequence": payload.module_sequence,
+            "module_title": module.title,
+            "deleted_count": deleted,
+            "message": (
+                f"Cleared cached lesson for module {payload.module_sequence} "
+                f"({module.title}). It will be regenerated on next delivery."
+                if deleted
+                else "No cached lesson found for this module — nothing to clear."
+            ),
+        }
+
+    elif payload.topic_slug:
+        # ── Delete all lessons for one topic ─────────────────────────────
+        topic = (
+            db.query(LearningTopic)
+            .filter(LearningTopic.slug == payload.topic_slug)
+            .first()
+        )
+        if not topic:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Learning topic '{payload.topic_slug}' not found.",
+            )
+        deleted = (
+            db.query(GeneratedLesson)
+            .filter(GeneratedLesson.topic_id == topic.id)
+            .delete()
+        )
+        db.commit()
+        logger.info(
+            f"ADMIN | clear-lesson-cache | topic={payload.topic_slug} deleted={deleted}"
+        )
+        return {
+            "status": "cleared",
+            "scope": "topic",
+            "topic_slug": payload.topic_slug,
+            "topic_name": topic.name,
+            "deleted_count": deleted,
+            "message": (
+                f"Cleared {deleted} cached lesson(s) for '{topic.name}'. "
+                "All modules will be regenerated on next delivery."
+                if deleted
+                else f"No cached lessons found for '{topic.name}' — nothing to clear."
+            ),
+        }
+
+    else:
+        # ── Delete ALL cached lessons ─────────────────────────────────────
+        deleted = db.query(GeneratedLesson).delete()
+        db.commit()
+        logger.info(f"ADMIN | clear-lesson-cache | scope=ALL deleted={deleted}")
+        return {
+            "status": "cleared",
+            "scope": "all",
+            "deleted_count": deleted,
+            "message": (
+                f"Cleared all {deleted} cached lesson(s). "
+                "Every module will be regenerated using the updated prompt on next delivery."
+                if deleted
+                else "Lesson cache was already empty — nothing to clear."
+            ),
+        }

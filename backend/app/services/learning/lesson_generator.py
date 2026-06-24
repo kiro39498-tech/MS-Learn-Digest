@@ -55,6 +55,16 @@ class LessonGeneratorService:
     def __init__(self):
         self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_MODEL
+        if not settings.GROQ_API_KEY:
+            logger.error(
+                "LESSON_GEN | GROQ_API_KEY is not set — ALL lessons will use the "
+                "fallback template. Set GROQ_API_KEY in your .env file and restart."
+            )
+        else:
+            logger.info(
+                f"LESSON_GEN | Groq configured | model={self.model} | "
+                f"key=...{settings.GROQ_API_KEY[-6:]}"
+            )
 
     async def generate_lesson(
         self,
@@ -121,7 +131,7 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
   "real_world_example": {{
     "company_type": "e.g. Retail bank, SaaS startup, Healthcare provider, E-commerce platform",
     "scenario": "3-4 sentences describing a realistic enterprise scenario where this technology solves a real business problem. Be specific about the problem, the solution, and the outcome.",
-    "lessons_learned": "2-3 bullet points of insights from this real-world application."
+    "lessons_learned": ["Insight 1 from this real-world application.", "Insight 2.", "Insight 3."]
   }},
   "common_mistakes": [
     {{"mistake": "Specific mistake professionals make", "consequence": "What goes wrong", "fix": "How to avoid/fix it"}}
@@ -136,18 +146,36 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
   }},
   "questions": {{
     "beginner": [
-      {{"question": "...", "model_answer": "..."}}
+      {{
+        "question": "A foundational conceptual question testing understanding of core ideas.",
+        "model_answer": "Clear, complete answer a new learner can understand."
+      }},
+      {{
+        "question": "A second foundational question covering a different core concept.",
+        "model_answer": "Clear, complete answer."
+      }}
     ],
     "advanced": [
-      {{"question": "...", "model_answer": "..."}}
+      {{
+        "question": "A scenario-based question requiring architectural or trade-off reasoning.",
+        "model_answer": "Detailed answer covering design decisions, edge cases, and enterprise context."
+      }},
+      {{
+        "question": "A troubleshooting or performance question requiring deep operational knowledge.",
+        "model_answer": "Detailed answer with specific steps or patterns."
+      }},
+      {{
+        "question": "A governance, security, or cost-optimisation question at principal-engineer level.",
+        "model_answer": "Detailed answer covering enterprise considerations."
+      }}
     ]
   }},
   "quiz": [
     {{
-      "question": "...",
-      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-      "correct_answer": "A) ...",
-      "explanation": "Why this is correct and why the others are wrong."
+      "question": "Multiple-choice question testing a specific fact, concept, or behaviour.",
+      "options": ["A) First option", "B) Second option", "C) Third option", "D) Fourth option"],
+      "correct_answer": "A) First option",
+      "explanation": "Explain exactly why this option is correct AND why each wrong option is incorrect."
     }}
   ],
   "summary": ["Key takeaway 1", "Key takeaway 2", "Key takeaway 3", "Key takeaway 4"],
@@ -160,9 +188,12 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
 STRICT RULES:
 - key_concepts: exactly 5-8 terms
 - common_mistakes: exactly 3-5 items
-- interview_questions.beginner: exactly 2 questions
-- interview_questions.advanced: exactly 3 questions
-- quiz: exactly 5-8 questions
+- questions.beginner: EXACTLY 2 questions — both MUST be present
+- questions.advanced: EXACTLY 3 questions — all 3 MUST be present
+- quiz: EXACTLY 5 questions minimum, up to 8 maximum — cover different aspects of the module
+- Each quiz item MUST have: question, options (exactly 4), correct_answer, explanation
+- quiz options MUST start with "A) ", "B) ", "C) ", "D) " respectively
+- correct_answer MUST exactly match one of the four options strings
 - summary: exactly 4-6 bullet points as a JSON array of strings
 - architecture_diagram: MUST be valid Mermaid syntax. Escape newlines as \\n
 - further_reading: 2-4 official Microsoft/Databricks/etc. links
@@ -174,8 +205,21 @@ STRICT RULES:
         t0 = _time.monotonic()
         logger.info(
             f"LESSON_GEN | START | topic={topic_name} module={module_title} "
-            f"skill={effective_skill} milestone={is_milestone}"
+            f"skill={effective_skill} milestone={is_milestone} "
+            f"groq_key_set={bool(settings.GROQ_API_KEY)}"
         )
+
+        if not settings.GROQ_API_KEY:
+            logger.error(
+                f"LESSON_GEN | SKIP | GROQ_API_KEY not set — using fallback for "
+                f"{topic_name}/{module_title}"
+            )
+            return {
+                "content_json": _fallback_lesson(
+                    topic_name, module_title, effective_skill, is_milestone
+                ),
+                "resource_links": resource_links,
+            }
 
         try:
             response = await self.client.chat.completions.create(
@@ -193,7 +237,7 @@ STRICT RULES:
                 model=self.model,
                 temperature=0.3,
                 response_format={"type": "json_object"},
-                max_tokens=4096,
+                max_tokens=8192,
             )
             latency_ms = int((_time.monotonic() - t0) * 1000)
             usage = response.usage
@@ -209,7 +253,12 @@ STRICT RULES:
             latency_ms = int((_time.monotonic() - t0) * 1000)
             logger.error(
                 f"LESSON_GEN | FAILED | {topic_name}/{module_title} "
-                f"latency_ms={latency_ms} | {exc}", exc_info=True,
+                f"latency_ms={latency_ms} | {type(exc).__name__}: {exc}",
+                exc_info=True,
+            )
+            logger.warning(
+                f"LESSON_GEN | FALLBACK | delivering generic lesson for "
+                f"{topic_name}/{module_title} — check GROQ_API_KEY and network"
             )
             return {
                 "content_json": _fallback_lesson(
@@ -255,23 +304,64 @@ def _fallback_lesson(topic_name: str, module_title: str, skill_level: str, is_mi
             "expected_outcome": f"Working understanding of {module_title}.",
             "challenge_extension": f"Try applying {module_title} in a real project scenario.",
         },
-        "interview_questions": {
+        "questions": {
             "beginner": [
-                {"question": f"What is {module_title}?", "model_answer": f"A core component of {topic_name}."}
+                {
+                    "question": f"What is {module_title} and what problem does it solve in {topic_name}?",
+                    "model_answer": f"{module_title} is a core component of {topic_name} that provides essential functionality for enterprise environments."
+                },
+                {
+                    "question": f"What are the key use cases for {module_title}?",
+                    "model_answer": f"{module_title} is primarily used for building and managing {topic_name} workloads. Refer to the official Microsoft documentation for specific use cases."
+                },
             ],
             "advanced": [
-                {"question": f"How would you architect a solution using {module_title}?", "model_answer": "Discuss trade-offs and patterns."}
-            ]
+                {
+                    "question": f"How would you design a production-grade solution using {module_title} at enterprise scale?",
+                    "model_answer": "Consider high availability, disaster recovery, cost optimisation, and security hardening. Discuss trade-offs between approaches."
+                },
+                {
+                    "question": f"What are the most common performance bottlenecks when working with {module_title} and how do you resolve them?",
+                    "model_answer": "Identify bottlenecks through monitoring and diagnostics. Apply right-sizing, caching, and architectural patterns appropriate to the workload."
+                },
+                {
+                    "question": f"How does {module_title} integrate with governance, compliance, and security policies in a regulated enterprise?",
+                    "model_answer": "Apply RBAC, policy-as-code, audit logging, and integration with security information and event management tools."
+                },
+            ],
         },
         "quiz": [
             {
                 "question": f"What is the primary purpose of {module_title}?",
-                "options": [f"A) Core {topic_name} functionality", "B) Unrelated concept", "C) Legacy feature", "D) Third-party tool"],
+                "options": [
+                    f"A) Core {topic_name} functionality",
+                    "B) An unrelated external service",
+                    "C) A deprecated legacy feature",
+                    "D) A third-party tool",
+                ],
                 "correct_answer": f"A) Core {topic_name} functionality",
-                "explanation": f"{module_title} is a core component of {topic_name}.",
-            }
+                "explanation": f"{module_title} is a core component of {topic_name}. Options B, C, and D are incorrect because {module_title} is a native, actively maintained Microsoft feature.",
+            },
+            {
+                "question": f"Which of the following best describes when to use {module_title}?",
+                "options": [
+                    f"A) When building or managing {topic_name} workloads",
+                    "B) Only for development and testing environments",
+                    "C) Exclusively for small-scale personal projects",
+                    "D) As a replacement for on-premises infrastructure only",
+                ],
+                "correct_answer": f"A) When building or managing {topic_name} workloads",
+                "explanation": f"{module_title} is designed for production {topic_name} workloads at any scale, not limited to dev/test or personal use.",
+            },
         ],
-        "summary": [f"{module_title} is an important part of {topic_name}.", "Refer to official documentation for details."],
+        "summary": [
+            f"{module_title} is an important building block within {topic_name}.",
+            "Refer to the official Microsoft Learn documentation for detailed guidance.",
+            "Hands-on practice in a sandbox environment accelerates understanding.",
+            "Apply what you learn to a real-world scenario to solidify the concepts.",
+        ],
         "next_lesson_preview": "Continue your learning journey in the next module.",
-        "further_reading": [{"title": "Microsoft Learn", "url": "https://learn.microsoft.com", "type": "official_docs"}]
+        "further_reading": [
+            {"title": "Microsoft Learn", "url": "https://learn.microsoft.com", "type": "official_docs"}
+        ]
     }

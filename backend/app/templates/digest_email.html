@@ -10,297 +10,319 @@
   <!--<![endif]-->
   <title>{{ digest_title }}</title>
   <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
   <![endif]-->
   <style type="text/css">
     /* ── Reset ── */
     body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
     table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
     img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none;}
-    body{margin:0;padding:0;width:100% !important;min-width:100%;}
+    body{margin:0;padding:0;width:100%!important;min-width:100%;}
     *{box-sizing:border-box;}
 
-    /* ── Outer shell ── */
-    .email-bg{background-color:#f0f4f8;padding:20px 0 32px;}
-    .email-wrapper{max-width:680px;margin:0 auto;}
+    /* ── Shell ── */
+    .bg{background:#f0f2f5;padding:16px 0 28px;}
+    .wrap{max-width:980px;margin:0 auto;}
 
-    /* ── Header ── */
-    .hdr{background:linear-gradient(135deg,#0078d4 0%,#004e8c 100%);border-radius:12px 12px 0 0;}
-    .hdr-inner{padding:28px 36px 24px;}
-    .hdr-eyebrow{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.6);margin:0 0 10px;}
-    .hdr-title{font-family:'Segoe UI',Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;margin:0 0 8px;line-height:1.25;}
-    .hdr-meta{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:rgba(255,255,255,.65);margin:0 0 14px;}
-    .pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:3px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;margin:2px 3px 2px 0;}
+    /* ── Header strip ── */
+    .hdr{background:#0078d4;border-radius:8px 8px 0 0;}
+    .hdr-inner{padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+    .hdr-brand{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.4px;}
+    .hdr-brand span{opacity:.65;font-weight:400;}
+    .hdr-meta-r{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:rgba(255,255,255,.7);text-align:right;}
 
-    /* ── Stats bar ── */
-    .stats-wrap{background:#ffffff;border-bottom:2px solid #e8edf2;}
-    .stat-cell{text-align:center;padding:14px 16px;border-right:1px solid #e8edf2;}
-    .stat-cell-last{text-align:center;padding:14px 16px;}
-    .stat-num{font-family:'Segoe UI',Arial,sans-serif;font-size:24px;font-weight:700;color:#0078d4;line-height:1;}
-    .stat-lbl{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8896a5;margin-top:4px;}
+    /* ── Title bar ── */
+    .title-bar{background:#005a9e;padding:16px 28px 14px;}
+    .title-bar h1{font-family:'Segoe UI',Arial,sans-serif;font-size:22px;font-weight:700;color:#fff;margin:0 0 8px;line-height:1.2;}
+    .pill-row{margin:0;}
+    .pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:14px;padding:2px 10px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;margin:2px 3px 2px 0;}
 
-    /* ── Body shell ── */
-    .body-wrap{background:#ffffff;padding:28px 36px 32px;border-radius:0 0 12px 12px;}
+    /* ── Stats strip ── */
+    .stats{background:#fff;border-bottom:2px solid #e1e8f0;}
+    .stat-row{display:flex;align-items:stretch;}
+    .stat-cell{flex:1;text-align:center;padding:10px 12px;border-right:1px solid #e8edf2;}
+    .stat-cell-last{flex:1;text-align:center;padding:10px 12px;}
+    .stat-num{font-family:'Segoe UI',Arial,sans-serif;font-size:20px;font-weight:700;color:#0078d4;line-height:1.1;}
+    .stat-lbl{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#8896a5;margin-top:2px;}
 
-    /* ── Greeting ── */
-    .greeting{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;margin:0 0 22px;}
+    /* ── Body ── */
+    .body{background:#fff;padding:22px 28px 28px;border-radius:0 0 8px 8px;}
+    .greeting{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#334155;line-height:1.6;margin:0 0 18px;}
 
-    /* ── Section label ── */
-    .section-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0078d4;margin:0 0 6px;}
-    .section-title{font-family:'Segoe UI',Arial,sans-serif;font-size:17px;font-weight:700;color:#18181b;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #e8edf2;}
-    .section-title-count{float:right;font-size:12px;font-weight:500;color:#94a3b8;margin-top:3px;}
+    /* ── Exec summary ── */
+    .exec-box{background:#eff6ff;border-left:3px solid #0078d4;border-radius:0 6px 6px 0;padding:11px 16px;margin:0 0 20px;}
+    .exec-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#0078d4;margin:0 0 5px;}
+    .exec-text{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1e3a5f;line-height:1.6;margin:0;}
 
-    /* ── Executive summary box ── */
-    .exec-box{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 28px;}
-    .exec-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#0078d4;margin:0 0 6px;}
-    .exec-text{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#1e3a5f;line-height:1.65;margin:0;}
+    /* ── Section heading ── */
+    .sec-hd{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#0078d4;margin:0 0 4px;}
+    .sec-title{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;color:#18181b;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #e8edf2;}
+    .sec-count{float:right;font-size:12px;font-weight:400;color:#94a3b8;margin-top:2px;}
 
-    /* ── Item cards ── */
-    .item-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:14px;}
-    .item-card-last{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:0;}
-    .item-title-link{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;color:#0078d4;text-decoration:none;line-height:1.4;display:block;margin-bottom:10px;}
-    .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;white-space:nowrap;}
-    .b-module{background:#eff6ff;color:#1e40af;}
-    .b-path{background:#f5f3ff;color:#7c3aed;}
-    .b-dur{background:#f1f5f9;color:#64748b;}
-    .item-summary{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;color:#475569;margin:0 0 12px;}
-    .wim-box{background:#eff6ff;border-left:4px solid #0078d4;border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 12px;}
-    .wim-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#0078d4;margin:0 0 4px;}
-    .wim-text{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#334155;line-height:1.55;margin:0;}
-    .kt-label{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin:0 0 6px;}
-    .kt-item{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#334155;line-height:1.55;padding:2px 0 2px 16px;position:relative;}
-    .cta-btn{display:inline-block;background:#0078d4;color:#ffffff;text-decoration:none;padding:9px 20px;border-radius:6px;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:.2px;}
+    /* ── 2-column item grid ── */
+    .grid-table{width:100%;border-collapse:collapse;}
+    .grid-td{width:50%;vertical-align:top;padding:0 6px 12px 0;}
+    .grid-td-r{width:50%;vertical-align:top;padding:0 0 12px 6px;}
+    .grid-td-full{vertical-align:top;padding:0 0 12px 0;}
 
-    /* ── Highlights section ── */
-    .highlight-card{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:10px;}
-    .highlight-card-last{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:0;}
-    .highlight-dot{font-size:14px;line-height:1;}
-    .highlight-text{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#15803d;line-height:1.55;font-weight:600;}
-    .highlight-sub{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#166534;margin:3px 0 0;}
+    /* ── Item card ── */
+    .card{background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:14px 16px;height:100%;}
+    .card-title{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:700;color:#0078d4;text-decoration:none;line-height:1.35;display:block;margin-bottom:8px;}
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-family:'Segoe UI',Arial,sans-serif;font-size:10px;font-weight:600;white-space:nowrap;}
+    .bm{background:#eff6ff;color:#1e40af;}
+    .bp{background:#f5f3ff;color:#7c3aed;}
+    .bd{background:#f1f5f9;color:#64748b;}
+    .card-summary{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.6;color:#475569;margin:8px 0 10px;}
+    .wim-inline{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#0078d4;line-height:1.5;margin:0 0 10px;padding-left:10px;border-left:2px solid #0078d4;}
+    .kt-row{margin:0 0 10px;}
+    .kt-item{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#334155;line-height:1.5;display:block;padding:1px 0 1px 12px;position:relative;}
+    .kt-dot{position:absolute;left:0;color:#0078d4;font-size:10px;}
+    .cta{display:inline-block;background:#0078d4;color:#fff;text-decoration:none;padding:6px 14px;border-radius:5px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;}
 
-    /* ── Resources section ── */
-    .resource-row{padding:10px 0;border-bottom:1px solid #f1f5f9;}
-    .resource-row-last{padding:10px 0;}
-    .resource-icon{font-size:14px;width:22px;}
-    .resource-link{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#0078d4;text-decoration:none;font-weight:600;}
-    .resource-type{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-left:6px;}
+    /* ── Highlights strip ── */
+    .hl-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 14px;margin-bottom:8px;}
+    .hl-title{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;color:#15803d;text-decoration:none;display:block;margin-bottom:3px;}
+    .hl-sub{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#166534;line-height:1.5;margin:0;}
+
+    /* ── Resource list ── */
+    .res-row{padding:7px 0;border-bottom:1px solid #f1f5f9;}
+    .res-row-last{padding:7px 0;}
+    .res-link{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#0078d4;text-decoration:none;font-weight:600;}
+    .res-tag{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;}
 
     /* ── Divider ── */
-    .divider{border:none;border-top:2px solid #e8edf2;margin:28px 0;}
-    .divider-sm{border:none;border-top:1px solid #e8edf2;margin:12px 0;}
+    .div{border:none;border-top:1px solid #e8edf2;margin:18px 0;}
 
     /* ── Footer ── */
-    .footer{text-align:center;padding:20px 36px 0;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#94a3b8;line-height:1.8;}
+    .footer{text-align:center;padding:14px 28px 0;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#94a3b8;line-height:1.7;}
     .footer a{color:#64748b;text-decoration:underline;}
-    .footer strong{color:#64748b;}
 
-    /* ── Responsive ── */
-    @media screen and (max-width:620px){
-      .email-wrapper{width:100% !important;}
-      .hdr-inner,.body-wrap{padding-left:18px !important;padding-right:18px !important;}
-      .hdr-title{font-size:21px !important;}
-      .stat-cell,.stat-cell-last{padding:10px 8px !important;}
-      .stat-num{font-size:18px !important;}
-      .item-card,.item-card-last{padding:14px 14px !important;}
-      .mobile-stack{display:block !important;width:100% !important;}
-      .mobile-hide{display:none !important;}
-      .footer{padding-left:16px !important;padding-right:16px !important;}
-    }
-
-    @media screen and (min-width:621px){
-      .desktop-show{display:table-cell !important;}
+    /* ── Mobile ── */
+    @media screen and (max-width:600px){
+      .wrap{width:100%!important;}
+      .hdr-inner{display:block!important;}
+      .hdr-meta-r{text-align:left!important;margin-top:4px;}
+      .title-bar{padding:12px 16px 10px!important;}
+      .title-bar h1{font-size:18px!important;}
+      .body,.footer{padding-left:16px!important;padding-right:16px!important;}
+      .stat-num{font-size:17px!important;}
+      .stat-cell,.stat-cell-last{padding:8px 6px!important;}
+      .grid-td,.grid-td-r{width:100%!important;display:block!important;padding:0 0 10px 0!important;}
     }
   </style>
 </head>
 <body>
-<div class="email-bg">
-<div class="email-wrapper">
+<div class="bg">
+<div class="wrap">
 
-  <!--[if mso]><table width="680" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+  <!--[if mso]><table width="980" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 
-  <!-- ══════════════════════════════════════
-       HEADER
-  ══════════════════════════════════════ -->
+  <!-- ══ HEADER STRIP ══ -->
   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
     <tr>
       <td class="hdr">
-        <div class="hdr-inner">
-          <p class="hdr-eyebrow">📚 MS Learn Digest</p>
-          <h1 class="hdr-title">{{ digest_title }}</h1>
-          <p class="hdr-meta">Generated {{ generated_at }}</p>
-          {% if topic_names %}
-          <div>
-            {% for t in topic_names %}<span class="pill">{{ t }}</span>{% endfor %}
-          </div>
-          {% endif %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding:13px 28px;">
+              <span style="font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;color:#fff;">
+                📚 MS Learn Digest
+                <span style="opacity:.6;font-weight:400;margin-left:6px;">Your Microsoft Learn Intelligence Platform</span>
+              </span>
+            </td>
+            <td style="padding:13px 28px;text-align:right;">
+              <span style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:rgba(255,255,255,.7);">
+                {{ generated_at }}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ══ TITLE BAR ══ -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+    <tr>
+      <td class="title-bar">
+        <h1 style="font-family:'Segoe UI',Arial,sans-serif;font-size:22px;font-weight:700;color:#fff;margin:0 0 8px;line-height:1.2;">{{ digest_title }}</h1>
+        <div class="pill-row">
+          {% if topic_names %}{% for t in topic_names %}<span class="pill">{{ t }}</span>{% endfor %}{% endif %}
         </div>
       </td>
     </tr>
   </table>
 
-  <!-- ══════════════════════════════════════
-       STATS BAR
-  ══════════════════════════════════════ -->
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" class="stats-wrap">
+  <!-- ══ STATS BAR ══ -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background:#fff;border-bottom:2px solid #e1e8f0;">
     <tr>
-      <td class="stat-cell" width="34%">
+      <td class="stat-cell" width="25%" align="center" style="padding:10px 12px;border-right:1px solid #e8edf2;">
         <div class="stat-num">{{ item_count }}</div>
         <div class="stat-lbl">Updates</div>
       </td>
-      <td class="stat-cell" width="33%">
+      <td class="stat-cell" width="25%" align="center" style="padding:10px 12px;border-right:1px solid #e8edf2;">
         <div class="stat-num">{{ topic_names|length }}</div>
         <div class="stat-lbl">Topics</div>
       </td>
-      <td class="stat-cell-last" width="33%">
-        <div class="stat-num" style="font-size:16px;padding-top:5px;">
-          {% if freq == 'daily' %}24 h
-          {% elif freq == 'weekly' %}7 d
-          {% elif freq == 'biweekly' %}14 d
-          {% else %}30 d{% endif %}
+      <td class="stat-cell" width="25%" align="center" style="padding:10px 12px;border-right:1px solid #e8edf2;">
+        <div class="stat-num" style="font-size:15px;padding-top:3px;">
+          {% if freq == 'daily' %}Daily{% elif freq == 'weekly' %}Weekly{% elif freq == 'biweekly' %}Bi-weekly{% else %}Monthly{% endif %}
+        </div>
+        <div class="stat-lbl">Frequency</div>
+      </td>
+      <td class="stat-cell-last" width="25%" align="center" style="padding:10px 12px;">
+        <div class="stat-num" style="font-size:15px;padding-top:3px;">
+          {% if freq == 'daily' %}24h{% elif freq == 'weekly' %}7d{% elif freq == 'biweekly' %}14d{% else %}30d{% endif %}
         </div>
         <div class="stat-lbl">Window</div>
       </td>
     </tr>
   </table>
 
-  <!-- ══════════════════════════════════════
-       BODY
-  ══════════════════════════════════════ -->
+  <!-- ══ BODY ══ -->
   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
     <tr>
-      <td class="body-wrap">
+      <td class="body">
 
         <!-- Greeting -->
         <p class="greeting">
-          Hi {{ user_name }},<br>
-          Here are your personalised Microsoft Learn updates for
-          {% if freq == 'daily' %}the last 24 hours
-          {% elif freq == 'weekly' %}the last 7 days
-          {% elif freq == 'biweekly' %}the last 14 days
-          {% else %}the last 30 days{% endif %}.
-          There {% if item_count == 1 %}is <strong>1 new item</strong>{% else %}are <strong>{{ item_count }} new items</strong>{% endif %} across your subscribed topics.
+          Hi <strong>{{ user_name }}</strong> — here are your Microsoft Learn updates for
+          {% if freq == 'daily' %}the last 24 hours{% elif freq == 'weekly' %}the last 7 days{% elif freq == 'biweekly' %}the last 14 days{% else %}the last 30 days{% endif %}.
+          {% if item_count == 1 %}1 new item{% else %}<strong>{{ item_count }} new items</strong>{% endif %} matched your subscribed topics.
         </p>
 
-        <!-- ── 1. Executive Summary ── -->
+        <!-- ── Executive Summary ── -->
         {% if executive_summary %}
-        <p class="section-label">📋 Executive Summary</p>
         <div class="exec-box">
-          <p class="exec-label">This week's overview</p>
+          <div class="exec-label">📋 Executive Summary</div>
           <p class="exec-text">{{ executive_summary }}</p>
         </div>
         {% endif %}
 
-        <!-- ── 2. Learning Content ── -->
+        <!-- ── Learning Content — 2-column grid ── -->
         {% if items %}
-        <p class="section-label">📘 Learning Content</p>
-        <p class="section-title">
-          <span class="section-title-count">{{ items|length }} item{% if items|length != 1 %}s{% endif %}</span>
+        <p class="sec-hd">📘 Learning Content</p>
+        <p class="sec-title">
+          <span class="sec-count">{{ items|length }} item{% if items|length != 1 %}s{% endif %}</span>
           Microsoft Learn Updates
         </p>
 
-        {% for item in items %}
-        <div class="{{ 'item-card-last' if loop.last else 'item-card' }}">
-
-          <!-- Title -->
-          <a href="{{ item.url }}" class="item-title-link">{{ item.title }}</a>
-
-          <!-- Badges row -->
-          <div style="margin-bottom:10px;">
-            {% if item.content_type %}
-            <span class="badge {{ 'b-path' if item.content_type == 'learningPath' else 'b-module' }}">
-              {{ '📗 Learning Path' if item.content_type == 'learningPath' else '📄 Module' }}
-            </span>
-            {% endif %}
-            {% if item.duration_minutes and item.duration_minutes > 0 %}
-            <span class="badge b-dur">⏱ {{ item.duration_minutes }} min</span>
-            {% endif %}
-          </div>
-
-          <!-- Summary -->
-          {% if item.newsletter_summary %}
-          <p class="item-summary">{{ item.newsletter_summary }}</p>
-          {% endif %}
-
-          <!-- Why it matters -->
-          {% if item.why_it_matters %}
-          <div class="wim-box">
-            <p class="wim-label">Why it matters</p>
-            <p class="wim-text">{{ item.why_it_matters }}</p>
-          </div>
-          {% endif %}
-
-          <!-- Key takeaways -->
-          {% if item.key_takeaways and item.key_takeaways|length > 0 %}
-          <p class="kt-label">Key Takeaways</p>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
-            {% for kt in item.key_takeaways %}
-            <tr>
-              <td style="width:16px;vertical-align:top;padding-top:1px;font-size:13px;color:#0078d4;">›</td>
-              <td class="kt-item">{{ kt }}</td>
-            </tr>
-            {% endfor %}
-          </table>
-          {% endif %}
-
-          <!-- CTA -->
-          <a href="{{ item.url }}" class="cta-btn">Read on Microsoft Learn →</a>
-
-        </div>
-        {% endfor %}
-        {% endif %}
-
-        <!-- ── 3. Key Highlights ── -->
-        {% if items and items|length > 0 %}
-        <hr class="divider">
-        <p class="section-label">✨ Key Highlights</p>
-        <p class="section-title">Recommended This Week</p>
-
-        {% for item in items[:3] %}
-        <div class="{{ 'highlight-card-last' if loop.last or loop.index >= 3 else 'highlight-card' }}">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="width:24px;vertical-align:top;padding-top:2px;" class="highlight-dot">
-                {{ '🏆' if loop.index == 1 else ('⭐' if loop.index == 2 else '💡') }}
-              </td>
-              <td>
-                <p class="highlight-text"><a href="{{ item.url }}" style="color:#15803d;text-decoration:none;">{{ item.title }}</a></p>
-                {% if item.why_it_matters %}
-                <p class="highlight-sub">{{ item.why_it_matters[:120] }}{% if item.why_it_matters|length > 120 %}…{% endif %}</p>
+        <!--
+          Render items in pairs as a 2-column grid on desktop.
+          Each pair is one <tr>. If the item count is odd, the last row
+          spans full width.
+        -->
+        <table class="grid-table" cellpadding="0" cellspacing="0" border="0" role="presentation">
+          {% for item in items %}
+          {% if loop.index is odd %}
+          <tr>
+            <!-- Left card -->
+            <td class="grid-td" valign="top">
+              <div class="card">
+                <a href="{{ item.url }}" class="card-title">{{ item.title }}</a>
+                <div style="margin-bottom:8px;">
+                  {% if item.content_type %}<span class="badge {{ 'bp' if item.content_type == 'learningPath' else 'bm' }}">{{ '📗 Path' if item.content_type == 'learningPath' else '📄 Module' }}</span>{% endif %}
+                  {% if item.duration_minutes and item.duration_minutes > 0 %}<span class="badge bd">⏱ {{ item.duration_minutes }}m</span>{% endif %}
+                </div>
+                {% if item.newsletter_summary %}<p class="card-summary">{{ item.newsletter_summary }}</p>{% endif %}
+                {% if item.why_it_matters %}<p class="wim-inline">{{ item.why_it_matters }}</p>{% endif %}
+                {% if item.key_takeaways and item.key_takeaways|length > 0 %}
+                <div class="kt-row">
+                  {% for kt in item.key_takeaways[:3] %}
+                  <span class="kt-item" style="display:block;padding-left:12px;position:relative;">
+                    <span style="position:absolute;left:0;color:#0078d4;font-size:10px;">›</span>
+                    {{ kt }}
+                  </span>
+                  {% endfor %}
+                </div>
                 {% endif %}
-              </td>
-            </tr>
-          </table>
-        </div>
-        {% if not loop.last and loop.index < 3 %}
-        <hr class="divider-sm">
-        {% endif %}
-        {% endfor %}
+                <a href="{{ item.url }}" class="cta">Read on MS Learn →</a>
+              </div>
+            </td>
+
+            <!-- Right card (next item if it exists) -->
+            {% if not loop.last %}
+            {% set next_item = items[loop.index] %}
+            <td class="grid-td-r" valign="top">
+              <div class="card">
+                <a href="{{ next_item.url }}" class="card-title">{{ next_item.title }}</a>
+                <div style="margin-bottom:8px;">
+                  {% if next_item.content_type %}<span class="badge {{ 'bp' if next_item.content_type == 'learningPath' else 'bm' }}">{{ '📗 Path' if next_item.content_type == 'learningPath' else '📄 Module' }}</span>{% endif %}
+                  {% if next_item.duration_minutes and next_item.duration_minutes > 0 %}<span class="badge bd">⏱ {{ next_item.duration_minutes }}m</span>{% endif %}
+                </div>
+                {% if next_item.newsletter_summary %}<p class="card-summary">{{ next_item.newsletter_summary }}</p>{% endif %}
+                {% if next_item.why_it_matters %}<p class="wim-inline">{{ next_item.why_it_matters }}</p>{% endif %}
+                {% if next_item.key_takeaways and next_item.key_takeaways|length > 0 %}
+                <div class="kt-row">
+                  {% for kt in next_item.key_takeaways[:3] %}
+                  <span class="kt-item" style="display:block;padding-left:12px;position:relative;">
+                    <span style="position:absolute;left:0;color:#0078d4;font-size:10px;">›</span>
+                    {{ kt }}
+                  </span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                <a href="{{ next_item.url }}" class="cta">Read on MS Learn →</a>
+              </div>
+            </td>
+            {% else %}
+            <!-- Odd total — last card gets a spacer column -->
+            <td class="grid-td-r" valign="top" style="background:transparent;">&nbsp;</td>
+            {% endif %}
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </table>
         {% endif %}
 
-        <!-- ── 4. Resources ── -->
+        <!-- ── Key Highlights ── -->
+        {% if items and items|length > 0 %}
+        <hr class="div">
+        <p class="sec-hd">✨ Key Highlights</p>
+        <p class="sec-title">Top Picks This Issue</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+          {% for item in items[:3] %}
+          <tr>
+            <td style="padding-bottom:8px;">
+              <div class="hl-box">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="width:22px;vertical-align:top;font-size:14px;padding-top:1px;">
+                      {{ '🏆' if loop.index == 1 else ('⭐' if loop.index == 2 else '💡') }}
+                    </td>
+                    <td>
+                      <a href="{{ item.url }}" class="hl-title">{{ item.title }}</a>
+                      {% if item.why_it_matters %}
+                      <p class="hl-sub">{{ item.why_it_matters[:140] }}{% if item.why_it_matters|length > 140 %}…{% endif %}</p>
+                      {% endif %}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% endif %}
+
+        <!-- ── Resources ── -->
         {% if items %}
-        <hr class="divider">
-        <p class="section-label">🔗 Resources</p>
-        <p class="section-title">All Links This Issue</p>
+        <hr class="div">
+        <p class="sec-hd">🔗 All Resources</p>
+        <p class="sec-title">Quick Reference Links</p>
 
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
           {% for item in items %}
           <tr>
-            <td class="{{ 'resource-row-last' if loop.last else 'resource-row' }}">
+            <td class="{{ 'res-row-last' if loop.last else 'res-row' }}">
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="width:22px;vertical-align:top;" class="resource-icon">
+                  <td style="width:20px;vertical-align:top;font-size:12px;padding-top:1px;">
                     {{ '📗' if item.content_type == 'learningPath' else '📄' }}
                   </td>
                   <td>
-                    <a href="{{ item.url }}" class="resource-link">{{ item.title }}</a>
-                    <span class="resource-type">{{ 'path' if item.content_type == 'learningPath' else 'module' }}</span>
+                    <a href="{{ item.url }}" class="res-link">{{ item.title }}</a>
+                    <span class="res-tag">{{ 'path' if item.content_type == 'learningPath' else 'module' }}</span>
                   </td>
                 </tr>
               </table>
@@ -310,9 +332,8 @@
         </table>
         {% endif %}
 
-        <!-- Closing line -->
-        <hr class="divider">
-        <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#94a3b8;text-align:center;margin:0;">
+        <hr class="div">
+        <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#94a3b8;text-align:center;margin:0;">
           Keep learning. See you next time. 🚀
         </p>
 
@@ -320,11 +341,9 @@
     </tr>
   </table>
 
-  <!-- ══════════════════════════════════════
-       FOOTER
-  ══════════════════════════════════════ -->
+  <!-- ══ FOOTER ══ -->
   <div class="footer">
-    <p>Sent by <strong>MS Learn Digest</strong> — Your Microsoft Learn intelligence platform.</p>
+    <p>Sent by <strong style="color:#64748b;">MS Learn Digest</strong></p>
     <p>
       <a href="{{ frontend_url }}/preferences">Manage Preferences</a>
       &nbsp;·&nbsp;
@@ -332,9 +351,8 @@
       &nbsp;·&nbsp;
       <a href="{{ frontend_url }}/unsubscribe">Unsubscribe</a>
     </p>
-    <p style="color:#cbd5e1;font-size:11px;margin-top:8px;">
-      © 2026 MS Learn Digest. You received this because you subscribed at
-      <a href="{{ frontend_url }}" style="color:#cbd5e1;">{{ frontend_url }}</a>.
+    <p style="color:#cbd5e1;font-size:10px;margin-top:6px;">
+      © 2026 MS Learn Digest &nbsp;·&nbsp; <a href="{{ frontend_url }}" style="color:#cbd5e1;">{{ frontend_url }}</a>
     </p>
   </div>
 
