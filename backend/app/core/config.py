@@ -1,10 +1,22 @@
 """
 MS Learn Digest — Application Configuration
 Loads all settings from environment variables.
+
+The .env file is resolved relative to this file's location so the path
+works correctly regardless of the working directory uvicorn is started from:
+
+  config.py  →  backend/app/core/config.py
+  .env       →  MS-Learn-Digest/.env   (three levels up)
 """
 
+import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
-from typing import Optional
+
+# Resolve .env path relative to this file so it works regardless of cwd.
+# config.py lives at:  <project>/backend/app/core/config.py
+# .env lives at:       <project>/.env
+_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
@@ -61,7 +73,7 @@ class Settings(BaseSettings):
     EMAIL_LOGIN_MAX_ATTEMPTS_PER_HOUR: int = 5   # rate limit per email address
 
     class Config:
-        env_file = "../.env"
+        env_file = str(_ENV_FILE)
         env_file_encoding = "utf-8"
         extra = "ignore"
 
