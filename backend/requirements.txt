@@ -1,0 +1,33 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn==0.34.0
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+alembic==1.14.1
+psycopg2-binary==2.9.10          # PostgreSQL driver
+
+# ── Data validation & settings ────────────────────────────────────────────────
+pydantic==2.13.0
+pydantic-settings==2.7.1
+
+# ── Authentication ─────────────────────────────────────────────────────────────
+python-jose==3.3.0               # JWT encode / decode (HS256)
+
+# ── HTTP clients ──────────────────────────────────────────────────────────────
+httpx==0.28.1                    # Google OAuth token exchange (async)
+requests==2.33.1                 # Resource discovery page scraping (sync)
+
+# ── AI provider ───────────────────────────────────────────────────────────────
+groq==0.15.0                     # Groq SDK — llama-3.3-70b-versatile
+
+# ── Background scheduler ──────────────────────────────────────────────────────
+apscheduler==3.10.4              # In-process async scheduler (AsyncIOScheduler)
+
+# ── Email templating ──────────────────────────────────────────────────────────
+jinja2==3.1.5                    # digest_email.html / learning_email.html / invitation_email.html
+
+# ── Web scraping (learning resource discovery) ────────────────────────────────
+beautifulsoup4==4.12.3           # HTML content extraction
+lxml==5.3.0                      # lxml parser backend for BeautifulSoup
+duckduckgo-search==6.3.7         # DuckDuckGo search for lesson context URLs
