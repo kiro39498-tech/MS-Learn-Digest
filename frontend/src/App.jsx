@@ -13,14 +13,23 @@ import LearningCenter from './pages/LearningCenter';
 import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 
-// Configure axios base URL
-import axios from 'axios';
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// ── Axios base URL ────────────────────────────────────────────────────────────
+// Configured once in services/api.js — that module throws at load time if
+// VITE_API_URL is missing, so we do NOT duplicate the fallback logic here.
+// This import triggers the validation immediately on app start.
+import './services/api';
 
+// ── Google OAuth validation ───────────────────────────────────────────────────
+// Log clearly whether the Google Client ID was provided, without crashing
+// (the error state is handled in LandingPage before the button is rendered).
 if (import.meta.env.VITE_GOOGLE_CLIENT_ID) {
   console.log('✅ Google OAuth configuration loaded successfully.');
 } else {
-  console.error('❌ Google OAuth configuration is MISSING (VITE_GOOGLE_CLIENT_ID).');
+  console.error(
+    '❌ VITE_GOOGLE_CLIENT_ID is not set. ' +
+    'Google Sign-In will not work. ' +
+    'Add VITE_GOOGLE_CLIENT_ID to your .env file (local) or Vercel environment (production).'
+  );
 }
 
 function App() {

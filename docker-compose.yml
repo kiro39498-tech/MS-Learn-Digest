@@ -1,5 +1,28 @@
 version: "3.9"
 
+# ══════════════════════════════════════════════════════════════════════════════
+# MS Learn Digest — Docker Compose (Local Development)
+# ══════════════════════════════════════════════════════════════════════════════
+# This file is for LOCAL development only.
+# Production runs on Render (backend) + Vercel (frontend).
+#
+# All environment-specific values are supplied via the root .env file.
+# No URL is hardcoded in this file.
+#
+# Usage:
+#   docker compose up --build
+#
+# Required root .env values for Docker:
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GROQ_API_KEY,
+#   SMTP_EMAIL, SMTP_PASSWORD, JWT_SECRET_KEY
+#
+# The following are automatically overridden for Docker networking:
+#   DATABASE_URL  → points at the 'db' service (not localhost)
+#   VITE_API_URL  → points at the 'backend' service (not localhost or Render)
+#   FRONTEND_URL  → http://localhost:5173 (same as local dev)
+#   GOOGLE_REDIRECT_URI → http://localhost:8000/auth/google/callback
+# ══════════════════════════════════════════════════════════════════════════════
+
 services:
   # ──────────────────────────────────────────────
   # PostgreSQL Database
@@ -34,7 +57,19 @@ services:
     env_file:
       - .env
     environment:
+      # Override DATABASE_URL to use the Docker 'db' service name, not localhost.
       - DATABASE_URL=postgresql://mslearn:mslearn_secret@db:5432/mslearndigest
+
+      # Local OAuth callback — must match what's registered in Google Cloud Console.
+      # Override here so the .env value (which may be production) is not used.
+      - GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+
+      # CORS — allow the local frontend origin.
+      - FRONTEND_URL=http://localhost:5173
+      - ALLOWED_ORIGINS=http://localhost:5173
+
+      # Ensure scheduler/email magic links point at local frontend.
+      - APP_ENV=development
     depends_on:
       db:
         condition: service_healthy
@@ -53,7 +88,12 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=https://ms-learn-digest.onrender.com
+      # Point the frontend at the local backend service (not Render).
+      # 'backend' is the Docker Compose service name, resolved inside the network.
+      # The Vite proxy rewrites /api/* → backend:8000 during dev.
+      - VITE_API_URL=http://backend:8000
+
+      # Google Client ID from root .env
       - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - backend

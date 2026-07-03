@@ -1,16 +1,52 @@
 /**
- * Centralized Axios API client.
- * All API calls go through this module.
+ * MS Learn Digest — Centralized API Client
+ * =========================================
+ * All backend communication goes through this Axios instance.
+ *
+ * Configuration:
+ * --------------
+ * baseURL is driven EXCLUSIVELY by the VITE_API_URL environment variable.
+ * NO fallback to localhost.  If VITE_API_URL is missing, we throw immediately
+ * rather than silently connecting to the wrong environment.
+ *
+ * Environment setup:
+ * ------------------
+ * Local dev (.env):         VITE_API_URL=http://localhost:8000
+ * Production (Vercel):      VITE_API_URL=https://ms-learn-digest.onrender.com
+ *
+ * The Vite config loads .env automatically in dev. On Vercel, set VITE_API_URL
+ * in the project environment variables panel (Settings → Environment Variables).
+ *
+ * Token handling:
+ * ---------------
+ * - JWT is stored in localStorage after successful login.
+ * - Request interceptor injects it into every API call as Authorization: Bearer.
+ * - Response interceptor detects 401 and auto-logs the user out.
  */
- 
+
 import axios from 'axios';
 
+// ── Validate configuration ───────────────────────────────────────────────────
+// VITE_API_URL must be set. If missing, throw immediately at module load time
+// so developers see the error in the console before making any API calls.
+const apiURL = import.meta.env.VITE_API_URL;
+if (!apiURL) {
+  throw new Error(
+    '[MS Learn Digest] VITE_API_URL is not set. ' +
+    'Create a .env file with VITE_API_URL=http://localhost:8000 (local) ' +
+    'or set it in Vercel environment variables (production).'
+  );
+}
+
+console.log(`[API Client] baseURL=${apiURL}`);
+
+// ── Create Axios instance ────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: apiURL,
   timeout: 60000,
 });
 
-// Attach JWT from localStorage to every request
+// ── Attach JWT from localStorage to every request ────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -19,7 +55,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-logout on 401
+// ── Auto-logout on 401 ───────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
