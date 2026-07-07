@@ -237,7 +237,7 @@ The `learning_weekly_reviews` table exists in the schema (migration `g7h8i9j0k1l
 
 ## Delivery Schedule
 
-The learning dispatch job runs every 30 minutes. A subscription is "due" when:
+The learning dispatch job runs once every hour. A subscription is "due" when:
 ```python
 def is_due(sub):
     if sub.status != "active":

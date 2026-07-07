@@ -212,6 +212,11 @@ class LearningRepository:
         content_json: dict,
         resource_links: list,
         model: str,
+        documentation_hash: str | None = None,
+        mcp_summary: str | None = None,
+        code_sample_links: list | None = None,
+        mcp_cache_date=None,
+        mcp_last_updated=None,
     ) -> GeneratedLesson:
         lesson = GeneratedLesson(
             topic_id=topic_id,
@@ -220,6 +225,11 @@ class LearningRepository:
             content_json=content_json,
             resource_links=resource_links,
             generation_model=model,
+            documentation_hash=documentation_hash,
+            mcp_summary=mcp_summary,
+            code_sample_links=code_sample_links,
+            mcp_cache_date=mcp_cache_date,
+            mcp_last_updated=mcp_last_updated,
         )
         self.db.add(lesson)
         self.db.commit()

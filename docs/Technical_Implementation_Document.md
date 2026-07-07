@@ -46,7 +46,7 @@ MS Learn Digest enables users to:
 | **Receive AI-generated learning lessons** | LessonGeneratorService → Groq → `learning_email.html` template → SMTP |
 | **Follow structured learning journeys** | Phased curriculum (up to 7 phases per track, milestone projects included) |
 | **Manage team newsletters** | TeamRepository atomic create; invitation flow with token-based email acceptance |
-| **Receive scheduled content updates** | APScheduler: catalog sync daily, digest dispatch every 15 min, learning dispatch every 30 min |
+| **Receive scheduled content updates** | APScheduler: catalog sync daily, digest dispatch hourly, learning dispatch hourly |
 
 ---
 
@@ -155,7 +155,7 @@ MS Learn Digest enables users to:
 
 **Delivery Flow** (see `services/learning/newsletter_generator.py`):
 
-1. Scheduler calls `run_learning_dispatch()` every 30 minutes
+1. Scheduler calls `run_learning_dispatch()` once every hour
 2. `LearningRepository.get_all_due_subscriptions()` returns subscriptions where `last_sent_at + frequency_delta ≤ now`
 3. For each due subscription, `LearningNewsletterGenerator.deliver(sub)` is called
 4. Resolves current module (phase-aware for custom phase subscriptions)
@@ -234,7 +234,7 @@ First login (is_onboarded=false) → redirect to /onboarding
 Dashboard shows digest history (GET /api/digests/)
   → click digest → GET /api/digests/{id} → DigestDetail
 
-Scheduler (every 15 min):
+Scheduler (hourly):
   1. Check if user is due (frequency × delivery_day × delivery_time, timezone-aware)
   2. If due: query catalog_cache, call Groq, render template, send email, save Digest
 
@@ -243,7 +243,7 @@ Learning Center (/learning):
   → click "Enrol" → PhaseSelector modal
   → POST /api/learning/subscribe {topic_id, frequency, is_full_track, selected_phases}
 
-Scheduler (every 30 min):
+Scheduler (hourly):
   1. Find due learning subscriptions
   2. Generate/retrieve cached lesson
   3. Send via SMTP

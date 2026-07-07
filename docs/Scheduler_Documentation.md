@@ -50,8 +50,8 @@ Digest generation reads only from `catalog_cache` — it never triggers a sync. 
 | Property | Value |
 |---|---|
 | **Function** | `run_digest_dispatch()` |
-| **Trigger** | `CronTrigger(minute="0,15,30,45", timezone="UTC")` |
-| **Schedule** | Every 15 minutes |
+| **Trigger** | `CronTrigger(minute=0, timezone="UTC")` |
+| **Schedule** | Once every hour |
 | **misfire_grace_time** | 300 seconds (5 minutes) |
 
 **What it does:**
@@ -76,7 +76,7 @@ def _is_due(frequency, delivery_day, utc_delivery_hour, utc_delivery_minute,
     if current_utc_hour != utc_delivery_hour:
         return False
     
-    # Must be in the same 15-minute bucket
+    # Must be in the same delivery hour
     if bucket(current_utc_minute) != bucket(utc_delivery_minute):
         return False
     
@@ -96,8 +96,8 @@ User delivery times are stored in their local timezone. The scheduler converts t
 | Property | Value |
 |---|---|
 | **Function** | `run_learning_dispatch()` |
-| **Trigger** | `CronTrigger(minute="0,30", timezone="UTC")` |
-| **Schedule** | Every 30 minutes |
+| **Trigger** | `CronTrigger(minute=0, timezone="UTC")` |
+| **Schedule** | Once every hour |
 | **misfire_grace_time** | 300 seconds (5 minutes) |
 
 **What it does:**
@@ -175,7 +175,7 @@ async def run_catalog_sync():
 
 **No Celery:** APScheduler is used as the sole task runner. It shares the event loop with FastAPI.
 
-**No task queue:** Jobs are not queued — they run sequentially within each job function. If the digest dispatch job takes longer than 15 minutes, the next trigger fires but APScheduler may skip or queue it (depending on `misfire_grace_time`).
+**No task queue:** Jobs are not queued — they run sequentially within each job function. If the digest dispatch job takes longer than hourlyutes, the next trigger fires but APScheduler may skip or queue it (depending on `misfire_grace_time`).
 
 **In-process isolation:** The scheduler runs in the same process as the API server. Heavy catalog syncs (~3 minutes) may consume CPU during the sync window but do not block the API event loop (async await is used throughout).
 

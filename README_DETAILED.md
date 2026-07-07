@@ -172,7 +172,7 @@ Purpose:
 - send them by email.
 
 Important behavior:
-- this job runs every 15 minutes,
+- this job runs once every hour,
 - it reads from catalog_cache only,
 - it uses a shared Groq-result cache for the duration of the dispatch run to avoid repeated AI calls for identical content.
 

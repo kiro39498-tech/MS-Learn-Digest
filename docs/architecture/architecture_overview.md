@@ -71,8 +71,8 @@ graph TB
 
     subgraph "Scheduler (APScheduler)"
         SYNC["catalog_sync_job\n(daily 02:00 UTC)"]
-        DISP["digest_dispatch_job\n(every 15 min)"]
-        LEARN["learning_dispatch_job\n(every 30 min)"]
+        DISP["digest_dispatch_job\n(hourly)"]
+        LEARN["learning_dispatch_job\n(hourly)"]
     end
 
     subgraph "Data Layer"
@@ -206,7 +206,7 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant SCH as Scheduler (every 15 min)
+    participant SCH as Scheduler (hourly)
     participant DG as DigestGenerator
     participant PG as PostgreSQL
     participant GR as Groq API
@@ -238,7 +238,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant SCH as Scheduler (every 30 min)
+    participant SCH as Scheduler (hourly)
     participant LNG as LearningNewsletterGenerator
     participant RD as ResourceDiscovery
     participant PG as PostgreSQL

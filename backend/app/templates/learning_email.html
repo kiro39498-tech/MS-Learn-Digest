@@ -261,9 +261,13 @@
     {% set rw = real_world_example %}
     <div class="sec">🌍 Real-World Example</div>
     <div class="rw-box">
-      {% if rw.company_type %}<div class="rw-company">{{ rw.company_type }}</div>{% endif %}
-      {% if rw.scenario %}<div class="rw-scenario">{{ rw.scenario }}</div>{% endif %}
-      {% set notes = rw.implementation_notes if rw.implementation_notes is defined else rw.get('implementation_notes', rw.get('lessons_learned', [])) %}
+      {% if rw is mapping and rw.company_type %}<div class="rw-company">{{ rw.company_type }}</div>{% endif %}
+      {% if rw is mapping and rw.scenario %}<div class="rw-scenario">{{ rw.scenario }}</div>{% endif %}
+      {% if rw is mapping %}
+        {% set notes = rw.implementation_notes if rw.implementation_notes is defined and rw.implementation_notes is not none else rw.get('implementation_notes', rw.get('lessons_learned', [])) %}
+      {% else %}
+        {% set notes = [] %}
+      {% endif %}
       {% for note in notes %}<div class="rw-note">{{ note }}</div>{% endfor %}
     </div>
     {% endif %}

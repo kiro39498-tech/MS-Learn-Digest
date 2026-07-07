@@ -109,6 +109,14 @@ class Settings(BaseSettings):
     CATALOG_SYNC_INTERVAL_MINUTES: int = 60     # Legacy — no longer drives scheduler
     ENRICHMENT_INTERVAL_MINUTES: int = 60
 
+    # ── Microsoft Learn MCP ───────────────────────────────────────────────
+    # Used only to enrich Learning lessons with official documentation context.
+    # The Catalog API remains the source for paths, modules, progress, and topics.
+    MCP_SERVER_URL: str = "https://learn.microsoft.com/api/mcp"
+    MCP_TIMEOUT: float = 10.0
+    MCP_RETRIES: int = 2
+    MCP_CACHE_TTL: int = 86400          # seconds; default is 24 hours
+
     # ── Team Invitations ──────────────────────────────────────────────────
     INVITATION_EXPIRY_HOURS: int = 72   # Invitation tokens expire after 3 days
 

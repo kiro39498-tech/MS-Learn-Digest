@@ -14,7 +14,7 @@
 |---|---|---|
 | FR-01-1 | Users can authenticate using Google OAuth 2.0 | ✅ Implemented |
 | FR-01-2 | Users can authenticate using email magic-link (passwordless) | ✅ Implemented |
-| FR-01-3 | Magic-link tokens expire in 15 minutes (configurable) | ✅ Implemented |
+| FR-01-3 | Magic-link tokens expire in hourlyutes (configurable) | ✅ Implemented |
 | FR-01-4 | Magic-link tokens are single-use | ✅ Implemented |
 | FR-01-5 | Magic-link requests are rate-limited to 5 per hour per email | ✅ Implemented |
 | FR-01-6 | System issues a JWT (HS256, 72-hour expiry) on successful authentication | ✅ Implemented |
@@ -55,7 +55,7 @@
 |---|---|---|
 | FR-04-1 | Users select a delivery frequency: daily, weekly, bi-weekly, or monthly | ✅ Implemented |
 | FR-04-2 | Users select a delivery day (for non-daily) and time | ✅ Implemented |
-| FR-04-3 | Scheduler checks delivery eligibility every 15 minutes | ✅ Implemented |
+| FR-04-3 | Scheduler checks delivery eligibility once every hour | ✅ Implemented |
 | FR-04-4 | Digest content is sourced only from `catalog_cache` (never triggers a sync) | ✅ Implemented |
 | FR-04-5 | Digest content is filtered to items modified within the user's frequency window | ✅ Implemented |
 | FR-04-6 | Digest content is further filtered to match user's topic subscriptions | ✅ Implemented |
@@ -229,10 +229,10 @@
 
 | Frequency | Content Window | Scheduler Check |
 |---|---|---|
-| `daily` | Last 24 hours | Every 15 min, fires on matching hour:minute |
-| `weekly` | Last 7 days | Every 15 min, fires on matching weekday + time |
-| `biweekly` | Last 14 days | Every 15 min, fires on even ISO week numbers |
-| `monthly` | Last 30 days | Every 15 min, fires on the 1st of the month |
+| `daily` | Last 24 hours | Hourly, fires on matching hour:minute |
+| `weekly` | Last 7 days | Hourly, fires on matching weekday + time |
+| `biweekly` | Last 14 days | Hourly, fires on even ISO week numbers |
+| `monthly` | Last 30 days | Hourly, fires on the 1st of the month |
 
 ### BR-02: Learning Phase Progression Rules
 

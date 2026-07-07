@@ -203,8 +203,8 @@ The APScheduler runs in-process (inside the FastAPI/Uvicorn process). There is n
 | Job | Schedule | What it does |
 |---|---|---|
 | `catalog_sync_job` | Daily at `CATALOG_SYNC_HOUR:CATALOG_SYNC_MINUTE` UTC (default 02:00) | Fetches MS Learn catalog and upserts `catalog_cache` |
-| `digest_dispatch_job` | Every 15 minutes | Sends due individual and team digests |
-| `learning_dispatch_job` | Every 30 minutes | Delivers due learning lessons |
+| `digest_dispatch_job` | Once every hour | Sends due individual and team digests |
+| `learning_dispatch_job` | Once every hour | Delivers due learning lessons |
 | `seed_topics_job` | Once on startup | Seeds system topic tree |
 | `seed_learning_job` | Once on startup | Seeds learning curriculum |
 

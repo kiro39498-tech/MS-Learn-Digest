@@ -61,26 +61,51 @@ def _domain_score(url: str) -> int:
 
 def _search_duckduckgo(query: str, max_results: int = 10) -> List[str]:
     """
-    Search DuckDuckGo for relevant URLs.
+    Search DuckDuckGo for relevant URLs with exponential backoff retries.
     Uses the duckduckgo_search library.
     Returns a list of URLs sorted by domain priority.
     """
     try:
         from duckduckgo_search import DDGS
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-        urls = [r.get("href") or r.get("url", "") for r in results if r]
-        urls = [u for u in urls if u.startswith("http")]
-        # Sort by domain priority (descending)
-        urls.sort(key=_domain_score, reverse=True)
-        logger.info(f"DISCOVERY | query={query!r} | found={len(urls)} URLs")
-        return urls
     except ImportError:
         logger.warning("DISCOVERY | duckduckgo_search not installed — returning empty results")
         return []
-    except Exception as exc:
-        logger.warning(f"DISCOVERY | DuckDuckGo search failed: {exc}")
-        return []
+
+    max_retries = 3
+    initial_delay = 1.0
+    backoff_factor = 2.0
+
+    delay = initial_delay
+    last_exc = None
+
+    for attempt in range(max_retries):
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=max_results))
+            urls = [r.get("href") or r.get("url", "") for r in results if r]
+            urls = [u for u in urls if u.startswith("http")]
+            # Sort by domain priority (descending)
+            urls.sort(key=_domain_score, reverse=True)
+            logger.info(f"DISCOVERY | query={query!r} | found={len(urls)} URLs (attempt {attempt + 1})")
+            return urls
+        except Exception as exc:
+            last_exc = exc
+            exc_str = str(exc)
+            is_rate_limit = "202" in exc_str or "rate limit" in exc_str.lower() or "too many requests" in exc_str.lower() or "202" in getattr(exc, "message", "")
+            
+            log_msg = f"DISCOVERY | DuckDuckGo search attempt {attempt + 1} failed: {exc}"
+            if is_rate_limit:
+                logger.info(f"{log_msg} (Rate limited; backing off)")
+            else:
+                logger.debug(log_msg)
+
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+                delay *= backoff_factor
+            else:
+                logger.warning(f"DISCOVERY | DuckDuckGo search query={query!r} failed after {max_retries} attempts: {last_exc}")
+
+    return []
 
 
 def _extract_content(url: str) -> str:

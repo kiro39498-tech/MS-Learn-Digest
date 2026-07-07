@@ -125,7 +125,7 @@ Single-click sign-in with no password management. Uses the standard OAuth 2.0 au
 Nine root technology domains with 60+ subtopics form a two-level tree. Subscribing to a parent topic automatically includes all descendant subtopics via a PostgreSQL recursive CTE at query time. Topic trees are rendered in the UI with expandable sections, emoji icons, and real-time search filtering.
 
 ### 3.3 Flexible Delivery Scheduling
-Each user sets an independent delivery schedule: frequency (daily/weekly/biweekly/monthly), day of week, and delivery time. The scheduler evaluates every user every 15 minutes against their configured schedule. Biweekly fires on even ISO weeks; monthly fires on the 1st of each month. All schedule logic is timezone-aware (Asia/Kolkata / IST).
+Each user sets an independent delivery schedule: frequency (daily/weekly/biweekly/monthly), day of week, and delivery time. The scheduler evaluates every user once every hour against their configured schedule. Biweekly fires on even ISO weeks; monthly fires on the 1st of each month. All schedule logic is timezone-aware (Asia/Kolkata / IST).
 
 ### 3.4 AI-Enriched Digest Generation
 For each scheduled delivery, new Microsoft Learn content (filtered by subscribed topics and the delivery time window) is sent to Groq's LLM API. The model returns a structured JSON response containing an executive summary of the entire digest and per-item enrichment: a newsletter-style summary, "why it matters" rationale, and key takeaways. This enriched content is rendered into an HTML email.
@@ -189,7 +189,7 @@ A comprehensive developer/admin panel at `/admin/testing` (guarded by `ADMIN_ENA
 **Responsibilities:**
 - Google OAuth code exchange and JWT issuance
 - Topic tree management and hierarchical subscription resolution
-- Digest scheduling evaluation (every 15 minutes)
+- Digest scheduling evaluation (once every hour)
 - Microsoft Learn catalog ingestion and caching (daily cron)
 - AI digest enrichment via Groq API
 - SMTP email delivery via Gmail
@@ -275,14 +275,14 @@ APScheduler runs an `AsyncIOScheduler` inside the FastAPI process. Four jobs are
 | Job | Trigger | Action |
 |---|---|---|
 | `run_catalog_sync` | Cron: 02:00 UTC daily | Fetch MS Learn catalog → upsert `catalog_cache` |
-| `run_digest_dispatch` | Cron: every 15 min | Evaluate all users + team newsletters, generate + send due digests |
-| `run_learning_dispatch` | Cron: every 30 min | Find due learning subscriptions, generate + deliver next lesson |
+| `run_digest_dispatch` | Cron: hourly | Evaluate all users + team newsletters, generate + send due digests |
+| `run_learning_dispatch` | Cron: hourly | Find due learning subscriptions, generate + deliver next lesson |
 | `seed_topics` | Date: once at startup | Seeds system topic tree if `topics` table is empty |
 | `seed_learning_curriculum_job` | Date: once at startup | Seeds learning curriculum if `learning_topics` is empty |
 
-The 15-minute digest dispatch loop uses `_is_due()` to evaluate each user. This function:
+The hourly digest dispatch loop uses `_is_due()` to evaluate each user. This function:
 1. Gets the current IST time
-2. Snaps it to the current 15-minute bucket
+2. Snaps it to the current delivery hour
 3. Checks if the user's `delivery_time` falls within that bucket
 4. For weekly/biweekly: checks `delivery_day` matches current weekday
 5. For biweekly: checks the current ISO week number is even
@@ -378,7 +378,7 @@ If the Groq call raises any exception, the generator falls back to building item
 
 **Dispatch cache:**
 
-Before calling Groq, `_compute_cache_key()` produces a SHA256 hash of `sorted(topic_slugs) + frequency + sorted(content_uids)`. The `dispatch_cache` dict (shared across all users in a single 15-minute scheduler run) is checked first. On a hit, the Groq result is reused and only the Jinja2 render (personalization) is repeated. This is an in-memory cache that lives only for the duration of one scheduler run — it is not persisted.
+Before calling Groq, `_compute_cache_key()` produces a SHA256 hash of `sorted(topic_slugs) + frequency + sorted(content_uids)`. The `dispatch_cache` dict (shared across all users in a single hourly scheduler run) is checked first. On a hit, the Groq result is reused and only the Jinja2 render (personalization) is repeated. This is an in-memory cache that lives only for the duration of one scheduler run — it is not persisted.
 
 ### 5.2 Learning Lesson Generation (Groq + Web Scraping)
 
@@ -456,7 +456,7 @@ The cached lesson is rendered via `learning_email.html` Jinja2 template into a f
    → catalog_cache rows inserted/updated (batched 500/commit)
    → SyncMetadata.last_sync_at updated
 
-4. DIGEST DISPATCH (runs every 15 minutes)
+4. DIGEST DISPATCH (runs once every hour)
    Scheduler: query all users with preferences + subscriptions
    For each user: _is_due(user) → True/False
    If due:
@@ -505,7 +505,7 @@ The cached lesson is rendered via `learning_email.html` Jinja2 template into a f
    → validates token not expired, not already used
    → TeamMember.user_id linked, status=accepted
 
-5. NEWSLETTER DISPATCH (15-minute scheduler)
+5. NEWSLETTER DISPATCH (hourly scheduler)
    Same _is_due() logic applied to TeamNewsletter
    → DigestGenerator.generate_and_send_for_newsletter()
    → Same filter sets / catalog query / Groq enrichment / Jinja2 render
@@ -520,7 +520,7 @@ The cached lesson is rendered via `learning_email.html` Jinja2 template into a f
    POST /api/learning/subscribe {topic_id, frequency}
    → UserLearningSubscription(status=active, current_module_sequence=1, frequency) created
 
-2. LESSON DISPATCH (every 30 minutes)
+2. LESSON DISPATCH (once every hour)
    LearningRepository.get_all_due_subscriptions()
    → is_due(sub): checks last_sent_at + frequency delta (daily=20h, weekly=6d, biweekly=13d)
    For each due subscription:
@@ -632,8 +632,8 @@ The HTML email is rendered by Jinja2 from `digest_email.html`. The rendered stri
 
 **Technical Implementation:**
 - `user_preferences` table stores `frequency` (enum string), `delivery_time` (PostgreSQL TIME), `delivery_day` (0–6 int), `timezone`
-- APScheduler fires `run_digest_dispatch` every 15 minutes
-- `_is_due()` function: snaps current IST time to 15-minute bucket, matches against stored `delivery_time` within that bucket
+- APScheduler fires `run_digest_dispatch` once every hour
+- `_is_due()` function: snaps current IST time to delivery hour, matches against stored `delivery_time` within that bucket
 - Biweekly uses `ISO week number % 2 == 0` check
 - Monthly uses `day == 1` check
 
@@ -748,7 +748,7 @@ The HTML email is rendered by Jinja2 from `digest_email.html`. The rendered stri
 
 **Problem:** If 100 users have overlapping topic subscriptions and all receive a weekly digest on the same day, calling Groq 100 times for effectively the same content is wasteful and slow.
 
-**Solution:** The `dispatch_cache` SHA256 key pattern. Within a single 15-minute scheduler run, if users A, B, and C all receive the same set of content UIDs with the same topic slugs and frequency, Groq is called once. The result is cached in-memory for the duration of that run. Re-rendering the Jinja2 template per user is negligible. This optimization doesn't require Redis or any external infrastructure.
+**Solution:** The `dispatch_cache` SHA256 key pattern. Within a single hourly scheduler run, if users A, B, and C all receive the same set of content UIDs with the same topic slugs and frequency, Groq is called once. The result is cached in-memory for the duration of that run. Re-rendering the Jinja2 template per user is negligible. This optimization doesn't require Redis or any external infrastructure.
 
 ### Challenge 4: Delivery Must Never Be Blocked by LLM Failure
 
@@ -818,7 +818,7 @@ Step two is my delivery schedule. I'll set weekly, Monday, at 8 AM. Done — I'm
 
 "The dashboard shows me when my next delivery is, the last time I received a digest, how many total digests I've received, and how many topics I'm subscribed to. I can also hit 'Send Digest Now' to trigger an immediate generation without waiting for the scheduler — useful for demos like this.
 
-Every 15 minutes, the scheduler checks every user against their configured schedule. When it's my time, the system queries the catalog cache for content published in my delivery window, filters it against my topic subscriptions, and sends it to Groq."
+Once every hour, the scheduler checks every user against their configured schedule. When it's my time, the system queries the catalog cache for content published in my delivery window, filters it against my topic subscriptions, and sends it to Groq."
 
 ---
 
@@ -1035,11 +1035,11 @@ SCHEDULER JOBS (running inside backend process):
 │  │ run_catalog_sync      │ Cron: 02:00 UTC daily                │  │
 │  │                       │ MS Learn API → catalog_cache upsert  │  │
 │  ├──────────────────────────────────────────────────────────────┤  │
-│  │ run_digest_dispatch   │ Cron: every 15 min                   │  │
+│  │ run_digest_dispatch   │ Cron: hourly                   │  │
 │  │                       │ Eval all users → filter → Groq →     │  │
 │  │                       │ Jinja2 → SMTP → persist digest       │  │
 │  ├──────────────────────────────────────────────────────────────┤  │
-│  │ run_learning_dispatch │ Cron: every 30 min                   │  │
+│  │ run_learning_dispatch │ Cron: hourly                   │  │
 │  │                       │ Find due subs → resource discovery → │  │
 │  │                       │ Groq lesson → SMTP → advance module  │  │
 │  ├──────────────────────────────────────────────────────────────┤  │
@@ -1055,7 +1055,7 @@ MS Learn Catalog API
        ▼  (daily, 02:00 UTC)
 catalog_cache (PostgreSQL)
        │
-       ▼  (every 15 min, per due user)
+       ▼  (hourly, per due user)
 DigestGenerator
   ├── resolve_descendant_ids() → recursive CTE → expanded topic filter sets
   ├── query catalog_cache → Python filter by products/subjects overlap
@@ -1067,7 +1067,7 @@ DigestGenerator
 
 User Enrollment (Learning Center)
        │
-       ▼  (every 30 min, per due subscription)
+       ▼  (hourly, per due subscription)
 LearningNewsletterGenerator
   ├── get current module (sequence pointer)
   ├── check generated_lessons cache

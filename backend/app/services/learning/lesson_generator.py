@@ -23,6 +23,7 @@ from typing import Dict, Any, List
 
 from groq import AsyncGroq
 from app.core.config import settings
+from app.services.lesson.lesson_coordinator import LessonCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,23 @@ def _build_context(resources: List[Dict]) -> str:
     return "\n\n".join(parts)
 
 
+def _build_official_context(resources: List[Dict], mcp_context: str = "") -> str:
+    """
+    Build the documentation context block used by Groq.
+
+    MCP context is first because it is the official Microsoft Learn enrichment
+    source. Existing discovered resources remain as supplemental context so the
+    current lesson flow keeps working if MCP is unavailable.
+    """
+    discovered_context = _build_context(resources)
+    parts = []
+    if mcp_context:
+        parts.append(mcp_context)
+    if discovered_context:
+        parts.append("SUPPLEMENTAL DISCOVERED RESOURCES\n" + discovered_context)
+    return "\n\n".join(parts)
+
+
 def _skill_guidance(skill_level: str) -> str:
     return {
         "beginner":     "Assume zero prior knowledge. Use simple language. Lots of analogies. Avoid jargon unless you define it immediately.",
@@ -53,18 +71,20 @@ def _skill_guidance(skill_level: str) -> str:
 
 class LessonGeneratorService:
     def __init__(self):
-        self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_MODEL
         if not settings.GROQ_API_KEY:
+            self.client = None
             logger.error(
                 "LESSON_GEN | GROQ_API_KEY is not set — ALL lessons will use the "
                 "fallback template. Set GROQ_API_KEY in your .env file and restart."
             )
         else:
+            self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
             logger.info(
                 f"LESSON_GEN | Groq configured | model={self.model} | "
                 f"key=...{settings.GROQ_API_KEY[-6:]}"
             )
+        self.coordinator = LessonCoordinator(client=self.client, model=self.model)
 
     async def generate_lesson(
         self,
@@ -79,15 +99,32 @@ class LessonGeneratorService:
         phase_name: str = "",
         is_milestone: bool = False,
         skill_level: str = "",
+        mcp_context: str = "",
     ) -> Dict[str, Any]:
         """Generate a deep, professional lesson using Groq."""
 
-        context = _build_context(resources)
+        return await self.coordinator.generate(
+            topic_name=topic_name,
+            module_title=module_title,
+            sequence_number=sequence_number,
+            total_modules=total_modules,
+            learning_objectives=learning_objectives or [],
+            keywords=keywords or [],
+            difficulty_level=difficulty_level,
+            resources=resources or [],
+            phase_name=phase_name,
+            is_milestone=is_milestone,
+            skill_level=skill_level or difficulty_level,
+            mcp_context=mcp_context,
+        )
+
+        context = _build_official_context(resources, mcp_context)
         objectives_str = "\n".join(f"- {o}" for o in (learning_objectives or []))
         keywords_str = ", ".join(keywords or [])
         resource_links = [
-            {"title": r.get("title", ""), "url": r["url"], "source": r.get("source", "")}
+            {"title": r.get("title", ""), "url": r.get("url", ""), "source": r.get("source", "")}
             for r in resources
+            if r.get("url")
         ]
         effective_skill = skill_level or difficulty_level
         skill_guidance = _skill_guidance(effective_skill)
@@ -112,6 +149,11 @@ AUDIENCE GUIDANCE: {skill_guidance}
 OFFICIAL DOCUMENTATION CONTEXT:
 {context if context else f"Use your deep knowledge of {topic_name} — {module_title}."}
 
+Based only on the official Microsoft documentation context above when making
+Microsoft-specific claims. If official documentation is temporarily
+unavailable, continue with a useful lesson from the module metadata and include
+that limitation in "official_documentation_status".
+
 Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACTLY this structure:
 
 {{
@@ -119,6 +161,7 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
   "skill_level": "{effective_skill}",
   "phase_name": "{phase_name}",
   "is_milestone": {str(is_milestone).lower()},
+  "official_documentation_status": "available | temporarily_unavailable",
   "estimated_read_minutes": <integer 10-30>,
   "today_goal": "One sentence: what the learner will be able to DO after this lesson.",
   "why_this_matters": "2-3 sentences: why THIS topic matters in real enterprise work. Be specific — mention actual business scenarios, not generic phrases.",
@@ -136,6 +179,15 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
   "common_mistakes": [
     {{"mistake": "Specific mistake professionals make", "consequence": "What goes wrong", "fix": "How to avoid/fix it"}}
   ],
+  "best_practices": [
+    "Specific best practice grounded in the official documentation context."
+  ],
+  "code_walkthrough": {{
+    "title": "Code sample or command walkthrough title",
+    "language": "Python, C#, Azure CLI, PowerShell, or conceptual",
+    "code": "Short representative snippet or command if present in the official context; otherwise an empty string.",
+    "explanation": "Explain what the sample does and why each important line or command matters."
+  }},
   "practical_exercise": {{
     "title": "Hands-on exercise title",
     "objective": "What the learner will build/configure",
@@ -188,6 +240,8 @@ Generate a COMPREHENSIVE, PROFESSIONAL lesson. Output ONLY valid JSON with EXACT
 STRICT RULES:
 - key_concepts: exactly 5-8 terms
 - common_mistakes: exactly 3-5 items
+- best_practices: exactly 4-6 items, grounded in the official documentation context
+- code_walkthrough: include a concise snippet only if supported by the context; otherwise explain the official sample links conceptually
 - questions.beginner: EXACTLY 2 questions — both MUST be present
 - questions.advanced: EXACTLY 3 questions — all 3 MUST be present
 - quiz: EXACTLY 5 questions minimum, up to 8 maximum — cover different aspects of the module
@@ -275,6 +329,7 @@ def _fallback_lesson(topic_name: str, module_title: str, skill_level: str, is_mi
         "skill_level": skill_level,
         "phase_name": "",
         "is_milestone": is_milestone,
+        "official_documentation_status": "temporarily_unavailable",
         "estimated_read_minutes": 10,
         "today_goal": f"Understand the fundamentals of {module_title} in {topic_name}.",
         "why_this_matters": f"{module_title} is a critical component of {topic_name} used extensively in enterprise environments.",
@@ -292,6 +347,18 @@ def _fallback_lesson(topic_name: str, module_title: str, skill_level: str, is_mi
         "common_mistakes": [
             {"mistake": "Skipping fundamentals", "consequence": "Gaps in knowledge", "fix": "Complete all prerequisite modules first."}
         ],
+        "best_practices": [
+            "Use the official Microsoft Learn documentation as the source of truth.",
+            "Validate configuration choices in a sandbox before production rollout.",
+            "Apply security, monitoring, and cost controls from the start.",
+            "Keep implementation notes tied to the current Microsoft guidance.",
+        ],
+        "code_walkthrough": {
+            "title": "Official sample walkthrough",
+            "language": "conceptual",
+            "code": "",
+            "explanation": "Official documentation is temporarily unavailable, so review the linked Microsoft Learn resources before copying implementation code.",
+        },
         "practical_exercise": {
             "title": f"Explore {module_title}",
             "objective": f"Get hands-on experience with {module_title}",

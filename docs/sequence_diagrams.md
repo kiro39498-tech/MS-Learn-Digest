@@ -130,7 +130,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant SCH as APScheduler (every 15 min)
+    participant SCH as APScheduler (hourly)
     participant DG as DigestGenerator
     participant TR as TopicRepository
     participant DB as PostgreSQL
@@ -230,7 +230,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant SCH as APScheduler (every 30 min)
+    participant SCH as APScheduler (hourly)
     participant LNG as LearningNewsletterGenerator
     participant RD as ResourceDiscovery
     participant LS as LessonGeneratorService

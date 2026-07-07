@@ -231,7 +231,7 @@ Verify `preferences_exist: true` and `can_receive_digest: true`.
 ### Symptom: Jobs not running
 **Check:** Verify APScheduler started successfully in logs:
 ```
-Scheduler started: catalog_sync daily at 02:00 UTC, digest_dispatch every 15 min, learning_dispatch every 30 min.
+Scheduler started: catalog_sync daily at 02:00 UTC, digest_dispatch hourly, learning_dispatch hourly.
 ```
 
 If not seen, check for startup exceptions in logs.

@@ -11,7 +11,7 @@ Tables:
 """
 
 from sqlalchemy import (
-    Column, String, Boolean, DateTime, Integer, Text, ForeignKey,
+    Column, String, Boolean, DateTime, Date, Integer, Text, ForeignKey,
     UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
@@ -155,10 +155,41 @@ class GeneratedLesson(Base):
     content_json = Column(JSONB, nullable=True)
     resource_links = Column(JSONB, nullable=True)
     generation_model = Column(String(100), nullable=True)
+    documentation_hash = Column(String(64), nullable=True)
+    mcp_summary = Column(Text, nullable=True)
+    code_sample_links = Column(JSONB, nullable=True)
+    mcp_cache_date = Column(Date, nullable=True)
+    mcp_last_updated = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     topic = relationship("LearningTopic")
     module = relationship("LearningModule", back_populates="generated_lesson")
+
+
+class MCPDocumentationCache(Base):
+    """
+    Daily cache of Microsoft Learn MCP enrichment metadata.
+
+    Stores summaries and links only; raw Microsoft documentation bodies are not
+    persisted.
+    """
+    __tablename__ = "mcp_documentation_cache"
+    __table_args__ = (
+        UniqueConstraint("topic", "cache_date", name="uq_mcp_doc_topic_date"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    topic = Column(String(500), nullable=False, index=True)
+    cache_date = Column(Date, nullable=False, index=True)
+    documentation_hash = Column(String(64), nullable=False)
+    summary = Column(Text, nullable=False, default="")
+    documentation_links = Column(JSONB, nullable=True)
+    code_sample_links = Column(JSONB, nullable=True)
+    best_practices = Column(JSONB, nullable=True)
+    source_status = Column(String(50), nullable=False, default="success")
+    error_message = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    last_updated = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
 
 class LearningAnalytics(Base):

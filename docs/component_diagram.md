@@ -157,9 +157,9 @@ graph LR
     subgraph "APScheduler (AsyncIOScheduler)"
         J1["catalog_sync_job\nCronTrigger: daily at CATALOG_SYNC_HOUR:MINUTE UTC\nDefault: 02:00 UTC\nmisfire_grace_time: 3600s\nrun_catalog_sync()"]
 
-        J2["digest_dispatch_job\nCronTrigger: minute=0,15,30,45\nmisfire_grace_time: 300s\nrun_digest_dispatch()"]
+        J2["digest_dispatch_job\nCronTrigger: minute=0\nmisfire_grace_time: 300s\nrun_digest_dispatch()"]
 
-        J3["learning_dispatch_job\nCronTrigger: minute=0,30\nmisfire_grace_time: 300s\nrun_learning_dispatch()"]
+        J3["learning_dispatch_job\nCronTrigger: minute=0\nmisfire_grace_time: 300s\nrun_learning_dispatch()"]
 
         J4["seed_topics_job\nDateTrigger: once on startup\nseed_topics()"]
 

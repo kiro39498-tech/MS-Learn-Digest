@@ -64,8 +64,8 @@ graph LR
 
     subgraph "Scheduled Jobs (in-process threads/coroutines)"
         J1["catalog_sync_job\n02:00 UTC daily"]
-        J2["digest_dispatch_job\nevery 15 min"]
-        J3["learning_dispatch_job\nevery 30 min"]
+        J2["digest_dispatch_job\nhourly"]
+        J3["learning_dispatch_job\nhourly"]
         J4["seed_topics_job\nonce on startup"]
         J5["seed_learning_job\nonce on startup"]
     end

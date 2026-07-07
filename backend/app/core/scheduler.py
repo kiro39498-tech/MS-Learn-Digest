@@ -8,7 +8,7 @@ catalog_cache_sync   — once daily at CATALOG_SYNC_HOUR:CATALOG_SYNC_MINUTE UTC
                        Digest generation NEVER triggers this job.
                        If the sync fails, the previous successful cache is used.
 
-digest_dispatch      — every 15 minutes.
+digest_dispatch      — once every hour.
                        Reads from catalog_cache only — never triggers a sync.
 
 seed_topics          — once on startup.
@@ -31,7 +31,13 @@ from app.core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(
+    job_defaults={
+        "coalesce": True,
+        "max_instances": 1,
+        "misfire_grace_time": 300,
+    }
+)
 
 
 # ── Timezone helpers ───────────────────────────────────────────────────────────
@@ -133,7 +139,7 @@ async def run_catalog_sync():
 
 async def run_digest_dispatch():
     """
-    Every 15 minutes: check all due users/newsletters and send digests.
+    Hourly: check all due users/newsletters and send digests.
     Reads ONLY from catalog_cache — never triggers a catalog sync.
     A single dispatch_cache dict is shared across all users in this run so that
     identical topic+frequency+content combinations reuse the same Groq output.
@@ -279,17 +285,12 @@ def _is_due(
     now_utc: datetime,
 ) -> bool:
     """
-    Returns True when the current 15-minute bucket matches the scheduled delivery.
+    Returns True when the current hourly run matches the scheduled delivery hour.
 
     Monthly: fires on the 1st of every month (no day-of-week selection needed).
     Biweekly: fires on even ISO week numbers for the chosen weekday.
     """
-    def bucket(m: int) -> int:
-        return (m // 15) * 15
-
     if current_utc_hour != utc_delivery_hour:
-        return False
-    if bucket(current_utc_minute) != bucket(utc_delivery_minute):
         return False
 
     if frequency == "daily":
@@ -309,7 +310,7 @@ def _is_due(
 
 async def run_learning_dispatch():
     """
-    Every 30 minutes: find all due learning subscriptions and deliver lessons.
+    Hourly: find all due learning subscriptions and deliver lessons.
 
     Each subscription is independent — Azure track and Fabric track for the
     same user produce two separate emails with different lesson content.
@@ -410,6 +411,10 @@ async def seed_topics():
 # ── Scheduler setup ────────────────────────────────────────────────────────────
 
 def setup_scheduler():
+    if scheduler.running:
+        logger.info("Scheduler already running; setup skipped.")
+        return
+
     # ── Catalog cache sync — ONCE daily at configured UTC hour ────────────
     scheduler.add_job(
         run_catalog_sync,
@@ -422,35 +427,52 @@ def setup_scheduler():
         name="MS Learn Catalog Cache Sync (daily)",
         replace_existing=True,
         misfire_grace_time=3600,  # allow up to 1 hour late start
+        max_instances=1,
+        coalesce=True,
     )
 
-    # ── Digest dispatch — every 15 minutes ────────────────────────────────
+    # ── Digest dispatch — once every hour ────────────────────────────────
     scheduler.add_job(
         run_digest_dispatch,
-        trigger=CronTrigger(minute="0,15,30,45", timezone="UTC"),
+        trigger=CronTrigger(minute=0, timezone="UTC"),
         id="digest_dispatch_job",
         name="Digest Dispatch",
         replace_existing=True,
         misfire_grace_time=300,
+        max_instances=1,
+        coalesce=True,
     )
 
-    # ── Learning dispatch — every 30 minutes ──────────────────────────────
+    # ── Learning dispatch — once every hour ──────────────────────────────
     scheduler.add_job(
         run_learning_dispatch,
-        trigger=CronTrigger(minute="0,30", timezone="UTC"),
+        trigger=CronTrigger(minute=0, timezone="UTC"),
         id="learning_dispatch_job",
         name="Learning Newsletter Dispatch",
         replace_existing=True,
         misfire_grace_time=300,
+        max_instances=1,
+        coalesce=True,
     )
 
     scheduler.start()
     logger.info(
         f"Scheduler started: "
         f"catalog_sync daily at {settings.CATALOG_SYNC_HOUR:02d}:{settings.CATALOG_SYNC_MINUTE:02d} UTC, "
-        f"digest_dispatch every 15 min, "
-        f"learning_dispatch every 30 min."
+        f"digest_dispatch hourly, "
+        f"learning_dispatch hourly."
     )
+    for job in scheduler.get_jobs():
+        logger.info(
+            "SCHEDULER | job=%s trigger=%s next_execution=%s "
+            "max_instances=%s coalesce=%s misfire_grace_time=%s",
+            job.id,
+            job.trigger,
+            job.next_run_time,
+            job.max_instances,
+            job.coalesce,
+            job.misfire_grace_time,
+        )
 
     # Seed topics once immediately on startup
     scheduler.add_job(
@@ -470,5 +492,8 @@ def setup_scheduler():
 
 
 def stop_scheduler():
+    if not scheduler.running:
+        logger.info("Scheduler already stopped.")
+        return
     scheduler.shutdown(wait=False)
     logger.info("Scheduler stopped.")
